@@ -123,3 +123,8 @@
 [2025-11-28 12:58:45] Redirect URI: http://localhost/KarirkuWebs/function/google-auth.php
 [2025-11-28 12:58:45] Redirecting to Google OAuth
 [2025-11-28 12:58:45] Auth URL: https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_ACTUAL_CLIENT_ID.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%2FKarirkuWebs%2Ffunction%2Fgoogle-auth.php&response_type=code&scope=email+profile&access_type=offline&prompt=consent
+[2025-12-02 12:40:47] === GOOGLE AUTH PROCESS STARTED ===
+[2025-12-02 12:40:47] Client ID: YOUR_ACTUA...
+[2025-12-02 12:40:47] Redirect URI: http://localhost/KarirkuWebs/function/google-auth.php
+[2025-12-02 12:40:47] Redirecting to Google OAuth
+[2025-12-02 12:40:47] Auth URL: https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_ACTUAL_CLIENT_ID.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%2FKarirkuWebs%2Ffunction%2Fgoogle-auth.php&response_type=code&scope=email+profile&access_type=offline&prompt=consent

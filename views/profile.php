@@ -363,7 +363,6 @@ foreach ($lamaranData as $lamaran) {
                 </div>
                 <div class="auth-buttons d-flex align-items-center">
                     <span class="me-3">Halo, <?php echo htmlspecialchars($user['nama_lengkap']); ?></span>
-                    <a href="logout.php" class="btn-login">Logout</a>
                 </div>
             </div>
         </div>
@@ -376,20 +375,10 @@ foreach ($lamaranData as $lamaran) {
             <div class="profile-card empty-profile">
                 <a href="edit_profile.php"><i class="bi bi-person-plus empty-profile-icon"></i></a>
                 <h2 class="empty-profile-title">Tambahkan Profil</h2>
-                <!-- <p class="empty-profile-text">
-                    Anda belum melengkapi profil. Lengkapi profil Anda untuk mengakses fitur lengkap
-                    dan meningkatkan peluang mendapatkan pekerjaan.
-                </p>
-                <a href="edit_profile.php" class="btn-add-profile">
-                    <i class="bi bi-plus-circle"></i>
-                    Tambahkan Profil
-                </a> -->
             </div>
         <?php else: ?>
             <!-- Tampilan Profil Lengkap -->
             <div class="profile-card">
-                <i class="bi bi-pencil-square menu-icon" onclick="window.location.href='edit_profile.php'" title="Edit Profile"></i>
-
                 <div class="profile-header">
                     <div class="profile-left">
                         <img src="<?php echo !empty($pencaker['foto_profil_url']) ? htmlspecialchars($pencaker['foto_profil_url']) : '../assets/img/default-avatar.png'; ?>"
@@ -473,20 +462,20 @@ foreach ($lamaranData as $lamaran) {
                 <div class="card-item" onclick="window.location.href='aktivitas.php'">
                     <div class="card-item-left">
                         <a href="aktivitas.php">
-                        <i class="bi bi-file-text card-icon"></i>
-                        <span class="card-item-text">Lamaran Saya</span>
+                            <i class="bi bi-file-text card-icon"></i>
+                            <span class="card-item-text">Lamaran Saya</span>
                         </a>
                     </div>
                     <i class="bi bi-chevron-right card-arrow"></i>
                 </div>
-                <div class="card-item" onclick="window.location.href='saved-jobs.php'">
+                <div class="card-item" onclick="window.location.href='aktivitas.php'">
                     <div class="card-item-left">
                         <i class="bi bi-bookmark card-icon"></i>
                         <span class="card-item-text">Disimpan</span>
                     </div>
                     <i class="bi bi-chevron-right card-arrow"></i>
                 </div>
-                <div class="card-item" onclick="window.location.href='<?= htmlspecialchars($pencaker['cv_url'] ?? '#') ?>'">
+                <div class="card-item" onclick="window.location.href='aktivitas.php'">
                     <div class="card-item-left">
                         <i class="bi bi-file-earmark-person card-icon"></i>
                         <span class="card-item-text">CV Saya</span>
@@ -512,12 +501,12 @@ foreach ($lamaranData as $lamaran) {
                 <h3 class="card-title">Akun</h3>
                 <div class="card-item" onclick="window.location.href='edit_profile.php'">
                     <div class="card-item-left">
-                        <i class="bi bi-person-gear card-icon"></i>
+                        <i class="bi bi-pencil-square card-icon"></i>
                         <span class="card-item-text">Edit Profil</span>
                     </div>
                     <i class="bi bi-chevron-right card-arrow"></i>
                 </div>
-                <div class="card-item" onclick="if(confirm('Apakah Anda yakin ingin keluar?')) window.location.href='logout.php'">
+                <div class="card-item" data-bs-toggle="modal" data-bs-target="#logoutModal">
                     <div class="card-item-left">
                         <i class="bi bi-box-arrow-right card-icon"></i>
                         <span class="card-item-text">Keluar</span>
@@ -673,6 +662,26 @@ foreach ($lamaranData as $lamaran) {
 
     <!-- Template Javascript -->
     <script src="../assets/js/main.js"></script>
+    <!-- Logout Confirmation Modal -->
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="logoutModalLabel">Konfirmasi Logout</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i class="bi bi-box-arrow-right text-warning" style="font-size: 48px; margin-bottom: 20px;"></i>
+                    <h5>Apakah Anda yakin ingin keluar?</h5>
+                    <p class="text-muted">Anda harus login kembali untuk mengakses akun Anda.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <a href="logout.php" class="btn btn-primary">Ya, Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

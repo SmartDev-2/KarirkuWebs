@@ -130,7 +130,7 @@ if (isset($_GET['debug'])) {
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600&family=Inter:wght@700;800&display=swap" rel="stylesheet">
 
     <!-- Icon Font Stylesheet -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
 
     <!-- Libraries Stylesheet -->
@@ -268,6 +268,7 @@ if (isset($_GET['debug'])) {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            margin-left: 16px;
         }
 
         .user-dropdown .fa-user {
@@ -383,6 +384,42 @@ if (isset($_GET['debug'])) {
                 font-size: 16px;
             }
         }
+
+        /* Tambahkan di dalam tag style */
+
+        /* Styling untuk ikon notifikasi */
+        #notificationDropdown {
+            color: #001f66 !important;
+            font-size: 1.2rem;
+            transition: color 0.3s;
+            padding: 8px;
+            border-radius: 50%;
+        }
+
+        #notificationDropdown:hover {
+            color: #002c99 !important;
+            background-color: rgba(0, 31, 102, 0.1);
+        }
+
+        /* Badge notifikasi */
+        #notificationDropdown .badge {
+            font-size: 0.6rem;
+            padding: 0.25em 0.45em;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Hover effect pada ikon bell */
+        #notificationDropdown i {
+            transition: transform 0.2s;
+        }
+
+        #notificationDropdown:hover i {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 
@@ -391,7 +428,7 @@ if (isset($_GET['debug'])) {
     <!-- Spinner Start -->
     <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
         <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
-            <span class="sr-only">Loading...</span>
+            
         </div>
     </div>
     <!-- Spinner End -->
@@ -415,21 +452,98 @@ if (isset($_GET['debug'])) {
 
                 <div class="auth-buttons d-flex align-items-center">
                     <?php if ($isLoggedIn && isset($_SESSION['user_id'])): ?>
+                        <div class="dropdown me-3">
+                            <!-- Icon notification tanpa tombol -->
+                            <a href="#" class="position-relative text-decoration-none" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="color: #001f66; font-size: 1.2rem; display: inline-block; border: none;">
+                                <i class="fa-regular fa-bell"></i>
+                                <?php
+                                $unseenCount = 0;
+                                if ($isLoggedIn && isset($_SESSION['user_id'])) {
+                                    require_once __DIR__ . '/../function/supabase.php';
+                                    $unseenCount = countUnseenNotifications($_SESSION['user_id']);
+                                }
+                                ?>
+                                <?php if ($unseenCount > 0): ?>
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; padding: 0.25em 0.45em;">
+                                        <?= $unseenCount ?>
+                                    </span>
+                                <?php endif; ?>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown" style="min-width: 300px;">
+                                <li class="dropdown-header">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>Notifikasi</strong>
+                                        <?php if ($unseenCount > 0): ?>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="markAllAsRead()">
+                                                Tandai sudah dibaca
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <?php if ($isLoggedIn && isset($_SESSION['user_id'])): ?>
+                                    <?php
+                                    $notifications = getNotifikasiLowonganBaru($_SESSION['user_id'], 5);
+                                    ?>
+                                    <?php if ($notifications['success'] && count($notifications['data']) > 0): ?>
+                                        <?php foreach ($notifications['data'] as $notif): ?>
+                                            <li>
+                                                <a class="dropdown-item" href="job-detail.php?id=<?= $notif['id_lowongan'] ?>">
+                                                    <div class="d-flex align-items-start" style="padding: 20px 10px;">
+                                                        <?php if (!empty($notif['perusahaan']['logo_url'])): ?>
+                                                        <?php else: ?>
+                                                            <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width: 30px; height: 30px;">
+                                                                <i class="fas fa-briefcase text-primary"></i>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                        <div class="flex-grow-1">
+                                                            <div class="fw-semibold"><?= htmlspecialchars($notif['judul']) ?></div>
+                                                            <small class="text-muted"><?= htmlspecialchars($notif['perusahaan']['nama_perusahaan'] ?? 'Perusahaan') ?></small>
+                                                            <div class="text-muted" style="font-size: 0.75rem;">
+                                                                <?= date('d M Y', strtotime($notif['dibuat_pada'])) ?>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+                                        <?php endforeach; ?>
+                                        <li>
+                                            <a class="dropdown-item text-center text-primary" href="job-list.php">
+                                                Lihat Semua Lowongan
+                                            </a>
+                                        </li>
+                                    <?php else: ?>
+                                        <li>
+                                            <div class="dropdown-item text-center text-muted">
+                                                <i class="fas fa-bell-slash fa-2x mb-2"></i>
+                                                <div>Tidak ada notifikasi baru</div>
+                                            </div>
+                                        </li>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </ul>
+                        </div>
                         <?php
+                        require_once __DIR__ . '/../function/supabase.php';
                         $pencaker = getPencakerByUserId($_SESSION['user_id']);
                         $fotoProfil = $pencaker['foto_profil_url'] ?? '';
                         ?>
                         <div class="dropdown">
                             <button class="btn user-dropdown dropdown-toggle text-white p-0 border-0 bg-transparent" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="box-shadow: none !important; background-color: white !important;">
                                 <?php if (!empty($fotoProfil)): ?>
-                                    <img src="<?= htmlspecialchars($fotoProfil) ?>" alt="Profile" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                    <img src="<?= htmlspecialchars($fotoProfil) ?>" alt="Profile" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover; border: none;">
                                 <?php else: ?>
-                                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-light text-dark" style="width: 40px; height: 40px;">
-                                        <i class="fas fa-user"></i>
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background: linear-gradient(135deg, #001f66, #002c99);">
+                                        <i class="fas fa-user text-white"></i>
                                     </div>
                                 <?php endif; ?>
                             </button>
-                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                 <li><a class="dropdown-item" href="profile.php"><i class="fas fa-user-circle me-2"></i>Profil</a></li>
                                 <li><a class="dropdown-item" href="my-applications.php"><i class="fas fa-briefcase me-2"></i>Lamaran Saya</a></li>
                                 <li>

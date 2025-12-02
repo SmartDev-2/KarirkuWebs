@@ -1,8 +1,47 @@
 <?php
 session_start();
 require_once 'function/supabase.php';
+require_once 'function/job-functions.php'; // Tambahkan ini
+
 $isLoggedIn = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
-$userName = $_SESSION['user'] ?? ''; // Pastikan ini 'user' bukan 'user_name'
+$userName = $_SESSION['user'] ?? '';
+
+// Ambil jumlah lowongan per kategori
+$kategoriCounts = [];
+$allJobs = searchLowongan('', '', 1, 1000); // Ambil semua lowongan untuk menghitung per kategori
+if ($allJobs['success']) {
+    foreach ($allJobs['data'] as $job) {
+        $kategori = $job['kategori'] ?? '';
+        if ($kategori) {
+            if (!isset($kategoriCounts[$kategori])) {
+                $kategoriCounts[$kategori] = 0;
+            }
+            $kategoriCounts[$kategori]++;
+        }
+    }
+}
+
+// Ambil 3 lowongan terbaru untuk Job Listing
+$recentJobs = searchLowongan('', '', 1, 3);
+$recentJobsData = $recentJobs['data'] ?? [];
+
+// Fungsi untuk mendapatkan jumlah berdasarkan kategori
+function getKategoriCount($kategoriName, $kategoriCounts)
+{
+    $kategoriMapping = [
+        'marketing' => 'Marketing',
+        'customer-service' => 'Customer Service',
+        'human-resource' => 'Human Resource',
+        'project-management' => 'Project Management',
+        'business-development' => 'Business Development',
+        'sales' => 'Sales',
+        'teaching' => 'Teaching',
+        'design' => 'Design'
+    ];
+
+    $dbKategori = $kategoriMapping[strtolower($kategoriName)] ?? $kategoriName;
+    return $kategoriCounts[$dbKategori] ?? 0;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -23,7 +62,7 @@ $userName = $_SESSION['user'] ?? ''; // Pastikan ini 'user' bukan 'user_name'
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600&family=Inter:wght@700;800&display=swap" rel="stylesheet">
 
     <!-- Icon Font Stylesheet -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
 
     <!-- Libraries Stylesheet -->
@@ -101,6 +140,40 @@ $userName = $_SESSION['user'] ?? ''; // Pastikan ini 'user' bukan 'user_name'
             outline: none !important;
             box-shadow: none !important;
         }
+
+        /* Styling untuk ikon notifikasi */
+        #notificationDropdown {
+            color: #001f66 !important;
+            font-size: 1.5rem;
+            transition: color 0.3s;
+            padding: 8px;
+            border-radius: 50%;
+        }
+
+        #notificationDropdown:hover {
+            color: #002c99 !important;
+            background-color: rgba(0, 31, 102, 0.1);
+        }
+
+        /* Badge notifikasi */
+        #notificationDropdown .badge {
+            font-size: 0.6rem;
+            padding: 0.25em 0.45em;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Hover effect pada ikon bell */
+        #notificationDropdown i {
+            transition: transform 0.2s;
+        }
+
+        #notificationDropdown:hover i {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 
@@ -134,8 +207,9 @@ $userName = $_SESSION['user'] ?? ''; // Pastikan ini 'user' bukan 'user_name'
                     <div class="auth-buttons d-flex align-items-center">
                         <?php if ($isLoggedIn && isset($_SESSION['user_id'])): ?>
                             <div class="dropdown me-3">
-                                <button class="btn btn-primary position-relative" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: #001f66; border: none; border-radius: 8px; padding: 8px 16px;">
-                                    <i class="fas fa-bell"></i>
+                                <!-- Icon notification tanpa tombol -->
+                                <a href="#" class="position-relative text-decoration-none" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="color: #001f66; font-size: 1.2rem; display: inline-block;">
+                                    <i class="fa-regular fa-bell"></i>
                                     <?php
                                     $unseenCount = 0;
                                     if ($isLoggedIn && isset($_SESSION['user_id'])) {
@@ -143,11 +217,11 @@ $userName = $_SESSION['user'] ?? ''; // Pastikan ini 'user' bukan 'user_name'
                                     }
                                     ?>
                                     <?php if ($unseenCount > 0): ?>
-                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; padding: 0.25em 0.45em;">
                                             <?= $unseenCount ?>
                                         </span>
                                     <?php endif; ?>
-                                </button>
+                                </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown" style="min-width: 300px;">
                                     <li class="dropdown-header">
                                         <div class="d-flex justify-content-between align-items-center">
@@ -177,7 +251,7 @@ $userName = $_SESSION['user'] ?? ''; // Pastikan ini 'user' bukan 'user_name'
                                                                     <i class="fas fa-briefcase text-primary"></i>
                                                                 </div>
                                                             <?php endif; ?>
-                                                            <div class="flex-grow-1" >
+                                                            <div class="flex-grow-1">
                                                                 <div class="fw-semibold"><?= htmlspecialchars($notif['judul']) ?></div>
                                                                 <small class="text-muted"><?= htmlspecialchars($notif['perusahaan']['nama_perusahaan'] ?? 'Perusahaan') ?></small>
                                                                 <div class="text-muted" style="font-size: 0.75rem;">
@@ -276,56 +350,56 @@ $userName = $_SESSION['user'] ?? ''; // Pastikan ini 'user' bukan 'user_name'
                         <a class="cat-item rounded p-4" href="views/job-list.php?category=marketing">
                             <i class="fa fa-3x fa-mail-bulk text-primary mb-4"></i>
                             <h6 class="mb-3">Marketing</h6>
-                            <p class="mb-0">123 permintaan</p>
+                            <p class="mb-0"><?= getKategoriCount('marketing', $kategoriCounts) ?> permintaan</p>
                         </a>
                     </div>
                     <div class="col-lg-3 col-sm-6 wow fadeInUp" data-wow-delay="0.3s">
                         <a class="cat-item rounded p-4" href="views/job-list.php?category=customer-service">
                             <i class="fa fa-3x fa-headset text-primary mb-4"></i>
                             <h6 class="mb-3">Customer Service</h6>
-                            <p class="mb-0">123 permintaan</p>
+                            <p class="mb-0"><?= getKategoriCount('customer-service', $kategoriCounts) ?> permintaan</p>
                         </a>
                     </div>
                     <div class="col-lg-3 col-sm-6 wow fadeInUp" data-wow-delay="0.5s">
                         <a class="cat-item rounded p-4" href="views/job-list.php?category=human-resource">
                             <i class="fa fa-3x fa-user-tie text-primary mb-4"></i>
                             <h6 class="mb-3">Human Resource</h6>
-                            <p class="mb-0">123 permintaan</p>
+                            <p class="mb-0"><?= getKategoriCount('human-resource', $kategoriCounts) ?> permintaan</p>
                         </a>
                     </div>
                     <div class="col-lg-3 col-sm-6 wow fadeInUp" data-wow-delay="0.7s">
                         <a class="cat-item rounded p-4" href="views/job-list.php?category=project-management">
                             <i class="fa fa-3x fa-tasks text-primary mb-4"></i>
                             <h6 class="mb-3">Project Management</h6>
-                            <p class="mb-0">123 permintaan</p>
+                            <p class="mb-0"><?= getKategoriCount('project-management', $kategoriCounts) ?> permintaan</p>
                         </a>
                     </div>
                     <div class="col-lg-3 col-sm-6 wow fadeInUp" data-wow-delay="0.1s">
                         <a class="cat-item rounded p-4" href="views/job-list.php?category=business-development">
                             <i class="fa fa-3x fa-chart-line text-primary mb-4"></i>
                             <h6 class="mb-3">Business Development</h6>
-                            <p class="mb-0">123 permintaan</p>
+                            <p class="mb-0"><?= getKategoriCount('business-development', $kategoriCounts) ?> permintaan</p>
                         </a>
                     </div>
                     <div class="col-lg-3 col-sm-6 wow fadeInUp" data-wow-delay="0.3s">
                         <a class="cat-item rounded p-4" href="views/job-list.php?category=sales">
                             <i class="fa fa-3x fa-hands-helping text-primary mb-4"></i>
                             <h6 class="mb-3">Sales & Communication</h6>
-                            <p class="mb-0">123 permintaan</p>
+                            <p class="mb-0"><?= getKategoriCount('sales', $kategoriCounts) ?> permintaan</p>
                         </a>
                     </div>
                     <div class="col-lg-3 col-sm-6 wow fadeInUp" data-wow-delay="0.5s">
                         <a class="cat-item rounded p-4" href="views/job-list.php?category=teaching">
                             <i class="fa fa-3x fa-book-reader text-primary mb-4"></i>
                             <h6 class="mb-3">Teaching & Education</h6>
-                            <p class="mb-0">123 permintaan</p>
+                            <p class="mb-0"><?= getKategoriCount('teaching', $kategoriCounts) ?> permintaan</p>
                         </a>
                     </div>
                     <div class="col-lg-3 col-sm-6 wow fadeInUp" data-wow-delay="0.7s">
                         <a class="cat-item rounded p-4" href="views/job-list.php?category=design">
                             <i class="fa fa-3x fa-drafting-compass text-primary mb-4"></i>
                             <h6 class="mb-3">Design & Creative</h6>
-                            <p class="mb-0">123 permintaan</p>
+                            <p class="mb-0"><?= getKategoriCount('design', $kategoriCounts) ?> permintaan</p>
                         </a>
                     </div>
                 </div>
@@ -385,30 +459,44 @@ $userName = $_SESSION['user'] ?? ''; // Pastikan ini 'user' bukan 'user_name'
                     </ul>
                     <div class="tab-content">
                         <div id="tab-1" class="tab-pane fade show p-0 active">
-                            <div class="job-item p-4 mb-4">
-                                <div class="row g-4">
-                                    <div class="col-sm-12 col-md-8 d-flex align-items-center">
-                                        <img class="flex-shrink-0 img-fluid border rounded" src="assets/img/com-logo-1.jpg" alt="" style="width: 80px; height: 80px;">
-                                        <div class="text-start ps-4">
-                                            <h5 class="mb-3">Software Engineer</h5>
-                                            <span class="text-truncate me-3"><i class="fa fa-map-marker-alt text-primary me-2"></i>New York, USA</span>
-                                            <span class="text-truncate me-3"><i class="far fa-clock text-primary me-2"></i>Full Time</span>
-                                            <span class="text-truncate me-0"><i class="far fa-money-bill-alt text-primary me-2"></i>$123 - $456</span>
+                            <?php if (!empty($recentJobsData)): ?>
+                                <?php foreach ($recentJobsData as $row): ?>
+                                    <?php
+                                    $logoUrl = getCompanyLogoUrl($row);
+                                    $companyName = getCompanyName($row);
+                                    ?>
+                                    <div class="job-item p-4 mb-4 border rounded shadow-sm">
+                                        <div class="row align-items-center">
+                                            <div class="col-sm-12 col-md-8 d-flex align-items-center">
+                                                <img class="flex-shrink-0 img-fluid border rounded" src="<?= htmlspecialchars($logoUrl) ?>" alt="" style="width: 80px; height: 80px;">
+                                                <div class="text-start ps-4">
+                                                    <h5 class="mb-3"><?= htmlspecialchars($row['judul'] ?? 'Judul tidak tersedia') ?></h5>
+                                                    <span class="text-truncate me-3"><i class="fa fa-map-marker-alt text-primary me-2"></i><?= htmlspecialchars($row['lokasi'] ?? 'Lokasi tidak tersedia') ?></span>
+                                                    <span class="text-truncate me-3"><i class="far fa-clock text-primary me-2"></i><?= htmlspecialchars(formatTipePekerjaan($row['tipe_pekerjaan'] ?? '')) ?></span>
+                                                    <span class="text-truncate me-0"><i class="far fa-money-bill-alt text-primary me-2"></i><?= htmlspecialchars($row['gaji_range'] ?? 'Gaji tidak tersedia') ?></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-12 col-md-4 d-flex flex-column align-items-start align-items-md-end justify-content-center">
+                                                <div class="d-flex mb-3">
+                                                    <?php if ($isLoggedIn): ?>
+                                                        <a class="btn btn-primary" href="views/job-detail.php?id=<?= htmlspecialchars($row['id_lowongan'] ?? '') ?>">Apply Now</a>
+                                                    <?php else: ?>
+                                                        <a class="btn btn-primary" href="views/login.php">Login untuk Apply</a>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <small class="text-truncate"><i class="far fa-calendar-alt text-primary me-2"></i>Date Line: <?= !empty($row['batas_tanggal']) ? date('d M Y', strtotime($row['batas_tanggal'])) : 'Tidak ditentukan' ?></small>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="col-sm-12 col-md-4 d-flex flex-column align-items-start align-items-md-end justify-content-center">
-                                        <div class="d-flex mb-3">
-                                            <a class="btn btn-light btn-square me-3" href=""><i class="far fa-heart text-primary"></i></a>
-                                            <?php if ($isLoggedIn): ?>
-                                                <a class="btn btn-primary" href="">Apply Now</a>
-                                            <?php else: ?>
-                                                <a class="btn btn-primary" href="views/login.php">Login untuk Apply</a>
-                                            <?php endif; ?>
-                                        </div>
-                                        <small class="text-truncate"><i class="far fa-calendar-alt text-primary me-2"></i>Date Line: 01 Jan, 2045</small>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="job-item p-4 mb-4">
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                        <h5 class="text-muted">Belum ada lowongan yang tersedia saat ini</h5>
                                     </div>
                                 </div>
-                            </div>
+                            <?php endif; ?>
                             <a class="btn btn-primary py-3 px-5" href="views/job-list.php" style="background-color: #001f66;">Lainnya</a>
                         </div>
                     </div>

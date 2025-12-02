@@ -254,10 +254,6 @@ if ($pencaker) {
                     <a href="../index.php" class="nav-item nav-link">Home</a>
                     <a href="job-list.php" class="nav-item nav-link">Cari Pekerjaan</a>
                 </div>
-                <div class="auth-buttons d-flex align-items-center">
-                    <span class="me-3">Halo, <?php echo htmlspecialchars($user['nama_lengkap']); ?></span>
-                    <a href="logout.php" class="btn-login">Logout</a>
-                </div>
             </div>
         </div>
     </nav>

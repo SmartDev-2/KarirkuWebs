@@ -168,7 +168,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
             font-weight: 500;
             width: 350px;
             transition: background-color 0.3s;
-            margin-top: 2px;
+            margin-top: 20px;
             cursor: pointer;
         }
 
@@ -235,7 +235,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
             <div class="login-body">
                 <h4 class="login-title"><img src="../assets/img/karirkulogo.png" alt="" style="width: 40px;"> Register</h4>
                 <!-- Ganti action form dan tambahkan input hidden -->
-                <form action="auth-process.php" method="POST">
+                <form action="../function/auth-process.php" method="POST" id="registerForm">
                     <input type="hidden" name="action" value="register">
 
                     <div class="form-group">
@@ -249,8 +249,6 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
                     <div class="form-group">
                         <input type="password" id="password" name="password" class="form-control" required placeholder="Kata sandi">
                     </div>
-
-                    <button type="submit" class="btn-login-primary">Daftar</button>
                 </form>
                 <!-- Tambahkan pesan error jika user perusahaan mencoba register di sini -->
                 <?php if (isset($_SESSION['error_role'])): ?>
@@ -287,12 +285,13 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
                 </span>
             </a>
         </div>
+        <!-- Tombol submit untuk form register -->
+        <button type="submit" form="registerForm" class="btn-daftar-primary" style="display: inline-block; text-align: center; text-decoration: none;">
+            Daftar
+        </button>
         <div class="span-text">
-            <h1>Sudah punya akun? klik Login</h1>
+            <h1>Sudah punya akun? <a href="login.php">Login</a></h1>
         </div>
-        <a href="login.php" class="btn-daftar-primary" style="display: inline-block; text-align: center; text-decoration: none;">
-            Login
-        </a>
     </div>
     <!-- Login Container End -->
 

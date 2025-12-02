@@ -168,7 +168,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
             font-weight: 500;
             width: 350px;
             transition: background-color 0.3s;
-            margin-top: 2px;
+            margin-top: 20px;
             cursor: pointer;
         }
 
@@ -202,6 +202,23 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
             outline: none;
             border-bottom: 1px solid #001f66;
             box-shadow: none;
+        }
+
+        /* auth.css - Tambahkan di akhir file */
+        .form-links {
+            display: flex !important;
+            justify-content: space-between !important;
+            margin-bottom: 15px;
+        }
+
+        .form-links a {
+            color: #001f66;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .form-links a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -239,7 +256,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
             <div class="login-body">
                 <h4 class="login-title"><img src="../assets/img/karirkulogo.png" alt="" style="width: 40px;"> Login</h4>
                 <!-- Pastikan action form sudah benar -->
-                <form action="../function/auth-process.php" method="POST">
+                <form action="../function/auth-process.php" method="POST" id="loginForm">
                     <input type="hidden" name="action" value="login">
 
                     <div class="form-group">
@@ -249,13 +266,19 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
                     <div class="form-group">
                         <input type="password" id="password" name="password" class="form-control" required placeholder="Kata sandi">
                     </div>
-                    <!-- Tambahkan link lupa password di sini -->
-                    <div style="text-align: right; margin-bottom: 15px;">
-                        <a href="forgot-password.php" style="color: #001f66; text-decoration: none; font-size: 14px;">
-                            Lupa Password?
-                        </a>
+                    <!-- Link Login Perusahaan dan Lupa Password -->
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <div>
+                            <a href="../company/login.php" style="color: #001f66; text-decoration: none; font-size: 14px;">
+                                Login Perusahaan
+                            </a>
+                        </div>
+                        <div>
+                            <a href="forgot-password.php" style="color: #001f66; text-decoration: none; font-size: 14px;">
+                                Lupa Password?
+                            </a>
+                        </div>
                     </div>
-                    <button type="submit" class="btn-login-primary">Login</button>
                 </form>
                 <!-- Di dalam login.php, setelah kode untuk menampilkan error, tambahkan: -->
                 <?php if (isset($_SESSION['success'])): ?>
@@ -302,12 +325,13 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
                 </span>
             </a>
         </div>
+        <!-- Tombol submit untuk form login -->
+        <button type="submit" form="loginForm" class="btn-daftar-primary" style="display: inline-block; text-align: center; text-decoration: none;">
+            Login
+        </button>
         <div class="span-text">
-            <h1>Belum punya akun? klik daftar</h1>
+            <h1>Belum punya akun? <a href="register.php">Register</h1></a>
         </div>
-        <a href="register.php" class="btn-daftar-primary" style="display: inline-block; text-align: center; text-decoration: none;">
-            Daftar
-        </a>
     </div>
     <!-- Login Container End -->
 

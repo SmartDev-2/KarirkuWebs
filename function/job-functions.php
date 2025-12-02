@@ -6,14 +6,16 @@ function getDaftarLokasi()
     try {
         $params = [
             'select' => 'lokasi',
-            'status' => 'eq.open',
+            'status' => 'eq.publish', // PERBAIKAN: Gunakan status yang benar
             'order' => 'lokasi.asc'
         ];
 
         $response = supabaseQuery('lowongan', $params);
 
         if (!$response['success']) {
-            throw new Exception('Failed to fetch locations: ' . ($response['error'] ?? 'Unknown error'));
+            error_log("Error fetching locations: " . ($response['error'] ?? 'Unknown error'));
+            // Return default locations jika query gagal
+            return ['Jakarta', 'Surabaya', 'Bandung', 'Malang', 'Jember'];
         }
 
         $data = $response['data'];
@@ -25,12 +27,17 @@ function getDaftarLokasi()
             }
         }
 
+        // Jika tidak ada lokasi, berikan default
+        if (empty($lokasiUnik)) {
+            $lokasiUnik = ['Jakarta', 'Surabaya', 'Bandung', 'Malang', 'Jember'];
+        }
+
         sort($lokasiUnik);
 
         return $lokasiUnik;
     } catch (Exception $e) {
         error_log("Error in getDaftarLokasi: " . $e->getMessage());
-        return [];
+        return ['Jakarta', 'Surabaya', 'Bandung', 'Malang', 'Jember'];
     }
 }
 
@@ -40,15 +47,19 @@ function searchLowongan($keyword = '', $lokasi = '', $page = 1, $limit = 5)
     $limit = max(1, (int)$limit);
     $offset = ($page - 1) * $limit;
 
+    error_log("searchLowongan called with: keyword='$keyword', lokasi='$lokasi', page=$page, limit=$limit");
+
     try {
-        // Query untuk mendapatkan data lowongan beserta data perusahaan
+        // PERBAIKAN: Query tanpa join dulu, join manual di PHP
         $params = [
-            'select' => '*, perusahaan:perusahaan(id_perusahaan, nama_perusahaan, logo_url, deskripsi, website)',
+            'select' => 'id_lowongan, judul, deskripsi, kualifikasi, lokasi, tipe_pekerjaan, gaji_range, dibuat_pada, batas_tanggal, status, kategori, mode_kerja, benefit, id_perusahaan',
             'limit' => $limit,
             'offset' => $offset,
-            'order' => 'dibuat_pada.desc',
-            'status' => 'eq.publish'
+            'order' => 'dibuat_pada.desc'
         ];
+
+        // PERBAIKAN: Gunakan filter status yang benar
+        $params['status'] = 'eq.publish'; // Sesuai dengan nilai di skema database
 
         if (!empty($keyword)) {
             $params['or'] = "(judul.ilike.%{$keyword}%,kategori.ilike.%{$keyword}%,deskripsi.ilike.%{$keyword}%,kualifikasi.ilike.%{$keyword}%)";
@@ -58,29 +69,67 @@ function searchLowongan($keyword = '', $lokasi = '', $page = 1, $limit = 5)
             $params['lokasi'] = 'ilike.%' . $lokasi . '%';
         }
 
+        error_log("Query params untuk lowongan: " . print_r($params, true));
+
         $response = supabaseQuery('lowongan', $params);
 
+        error_log("Response lowongan success: " . ($response['success'] ? 'true' : 'false'));
+        error_log("Response lowongan count: " . count($response['data'] ?? []));
+
         if (!$response['success']) {
-            throw new Exception('Failed to fetch data: ' . ($response['error'] ?? 'Unknown error'));
+            throw new Exception('Failed to fetch lowongan data: ' . ($response['error'] ?? 'Unknown error'));
         }
 
         $data = $response['data'];
 
-        // Process the data to extract perusahaan information
+        error_log("Data lowongan raw count: " . count($data));
+
+        // PERBAIKAN: Ambil data perusahaan secara terpisah untuk join manual
         $processedData = [];
-        foreach ($data as $row) {
-            $processedRow = $row;
-            
-            // Extract perusahaan data from the nested structure
-            if (isset($row['perusahaan']) && is_array($row['perusahaan'])) {
-                $processedRow['perusahaan'] = $row['perusahaan'][0] ?? $row['perusahaan'];
-            } else {
-                $processedRow['perusahaan'] = null;
+        if (!empty($data)) {
+            // Kumpulkan semua id_perusahaan yang unik
+            $idPerusahaanArray = [];
+            foreach ($data as $row) {
+                if (!empty($row['id_perusahaan'])) {
+                    $idPerusahaanArray[] = $row['id_perusahaan'];
+                }
             }
-            
-            $processedData[] = $processedRow;
+
+            $idPerusahaanArray = array_unique($idPerusahaanArray);
+
+            // Ambil data perusahaan
+            $perusahaanData = [];
+            if (!empty($idPerusahaanArray)) {
+                $perusahaanParams = [
+                    'select' => 'id_perusahaan, nama_perusahaan, logo_url, deskripsi, website',
+                    'id_perusahaan' => 'in.(' . implode(',', $idPerusahaanArray) . ')'
+                ];
+
+                $perusahaanResponse = supabaseQuery('perusahaan', $perusahaanParams);
+
+                if ($perusahaanResponse['success']) {
+                    foreach ($perusahaanResponse['data'] as $perusahaan) {
+                        $perusahaanData[$perusahaan['id_perusahaan']] = $perusahaan;
+                    }
+                }
+            }
+
+            // Gabungkan data
+            foreach ($data as $row) {
+                $processedRow = $row;
+
+                // Tambahkan data perusahaan jika ada
+                if (!empty($row['id_perusahaan']) && isset($perusahaanData[$row['id_perusahaan']])) {
+                    $processedRow['perusahaan'] = $perusahaanData[$row['id_perusahaan']];
+                } else {
+                    $processedRow['perusahaan'] = null;
+                }
+
+                $processedData[] = $processedRow;
+            }
         }
 
+        // Hitung total data
         $countParams = [
             'select' => 'id_lowongan',
             'status' => 'eq.publish'
@@ -96,8 +145,10 @@ function searchLowongan($keyword = '', $lokasi = '', $page = 1, $limit = 5)
 
         $countResponse = supabaseQuery('lowongan', $countParams, ['count' => 'exact']);
 
-        $totalData = $countResponse['count'] ?? count($processedData);
+        $totalData = $countResponse['count'] ?? 0;
         $totalPages = $totalData > 0 ? ceil($totalData / $limit) : 1;
+
+        error_log("Total data setelah query: $totalData, Processed data: " . count($processedData));
 
         return [
             'success' => true,
@@ -132,13 +183,14 @@ function searchLowongan($keyword = '', $lokasi = '', $page = 1, $limit = 5)
 }
 
 // Fungsi untuk mendapatkan URL logo perusahaan
+// Fungsi untuk mendapatkan URL logo perusahaan
 function getCompanyLogoUrl($lowonganData)
 {
     // Jika ada data perusahaan dan logo_url
-    if (isset($lowonganData['perusahaan']['logo_url']) && !empty($lowonganData['perusahaan']['logo_url'])) {
+    if (isset($lowonganData['perusahaan']) && !empty($lowonganData['perusahaan']['logo_url'])) {
         return $lowonganData['perusahaan']['logo_url'];
     }
-    
+
     // Fallback ke logo default
     return '../assets/img/logo.png';
 }
@@ -146,10 +198,15 @@ function getCompanyLogoUrl($lowonganData)
 // Fungsi untuk mendapatkan nama perusahaan
 function getCompanyName($lowonganData)
 {
-    if (isset($lowonganData['perusahaan']['nama_perusahaan']) && !empty($lowonganData['perusahaan']['nama_perusahaan'])) {
+    if (isset($lowonganData['perusahaan']) && !empty($lowonganData['perusahaan']['nama_perusahaan'])) {
         return $lowonganData['perusahaan']['nama_perusahaan'];
     }
-    
+
+    // Coba ambil dari data langsung jika perusahaan tidak ada
+    if (isset($lowonganData['nama_perusahaan'])) {
+        return $lowonganData['nama_perusahaan'];
+    }
+
     return 'Perusahaan';
 }
 
@@ -164,8 +221,9 @@ function getDetailLowongan($id_lowongan)
     }
 
     try {
+        // PERBAIKAN: Ambil data lowongan dulu
         $params = [
-            'select' => '*, perusahaan:perusahaan(id_perusahaan, nama_perusahaan, logo_url, deskripsi, website, lokasi, no_telp)',
+            'select' => '*',
             'id_lowongan' => 'eq.' . $id_lowongan
         ];
 
@@ -180,10 +238,23 @@ function getDetailLowongan($id_lowongan)
         }
 
         $data = $response['data'][0];
-        
-        // Process perusahaan data
-        if (isset($data['perusahaan']) && is_array($data['perusahaan'])) {
-            $data['perusahaan'] = $data['perusahaan'][0] ?? $data['perusahaan'];
+
+        // Ambil data perusahaan secara terpisah
+        if (!empty($data['id_perusahaan'])) {
+            $perusahaanParams = [
+                'select' => 'id_perusahaan, nama_perusahaan, logo_url, deskripsi, website, lokasi, no_telp',
+                'id_perusahaan' => 'eq.' . $data['id_perusahaan']
+            ];
+
+            $perusahaanResponse = supabaseQuery('perusahaan', $perusahaanParams);
+
+            if ($perusahaanResponse['success'] && !empty($perusahaanResponse['data'])) {
+                $data['perusahaan'] = $perusahaanResponse['data'][0];
+            } else {
+                $data['perusahaan'] = null;
+            }
+        } else {
+            $data['perusahaan'] = null;
         }
 
         return [
@@ -203,7 +274,7 @@ function getDetailLowongan($id_lowongan)
 function formatLowongan($lowongan)
 {
     $perusahaan = $lowongan['perusahaan'] ?? [];
-    
+
     return [
         'id_lowongan' => $lowongan['id_lowongan'] ?? '',
         'judul' => $lowongan['judul'] ?? 'Judul tidak tersedia',
@@ -229,7 +300,7 @@ function formatLowongan($lowongan)
 function parseKualifikasi($kualifikasi)
 {
     $kualifikasi_list = [];
-    
+
     if (!empty($kualifikasi)) {
         $kualifikasi_array = explode(';', $kualifikasi);
         foreach ($kualifikasi_array as $item) {
@@ -239,14 +310,14 @@ function parseKualifikasi($kualifikasi)
             }
         }
     }
-    
+
     return $kualifikasi_list;
 }
 
 function parseBenefit($benefit)
 {
     $benefit_list = [];
-    
+
     if (!empty($benefit)) {
         $benefit_array = explode(',', $benefit);
         foreach ($benefit_array as $item) {
@@ -256,7 +327,7 @@ function parseBenefit($benefit)
             }
         }
     }
-    
+
     return $benefit_list;
 }
 
