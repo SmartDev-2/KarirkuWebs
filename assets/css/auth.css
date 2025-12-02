@@ -1,0 +1,210 @@
+/* === Reset layout login agar posisi vertikal sejajar tengah === */
+.login-container {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column; /* ubah orientasi menjadi vertikal */
+  align-items: center; /* sejajarkan horizontal */
+  justify-content: center; /* sejajarkan vertikal */
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+    url("../assets/img/background.png") center center no-repeat;
+  background-size: cover;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+/* Teks di atas card */
+.intro-text {
+  color: white;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.4;
+  max-width: 700px;
+  margin-bottom: 40px; /* jarak dengan card */
+}
+
+/* Card login tetap di tengah */
+.login-card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+}
+
+.login-header {
+  background-color: #001f66;
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+
+.login-header img {
+  height: 40px;
+  margin-bottom: 10px;
+}
+
+.login-header h1 {
+  font-size: 24px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.login-body {
+  padding: 30px;
+}
+
+.login-title {
+  text-align: center;
+  margin-bottom: 25px;
+  color: #333;
+  font-weight: 500;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 5px;
+  border: none;
+  border-bottom: 1px solid #ccc;
+  border-radius: 0;
+  background: transparent;
+  font-size: 14px;
+  color: #333;
+  transition: border-color 0.3s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-bottom: 1px solid #001f66;
+  box-shadow: none;
+}
+
+
+.form-control:focus {
+  border-color: #001f66;
+  box-shadow: 0 0 0 0.2rem rgba(0, 31, 102, 0.25);
+}
+
+.btn-login-primary {
+  background-color: #001f66;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 500;
+  width: 20px;
+  transition: background-color 0.3s;
+}
+
+.btn-login-primary:hover {
+  background-color: #002c99;
+}
+
+.btn-woke {
+  background-color: #f0f0f0;
+  color: #333;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 500;
+  width: 100%;
+  margin-bottom: 10px;
+  transition: background-color 0.3s;
+}
+
+.btn-woke:hover {
+  background-color: #e0e0e0;
+}
+
+.btn-google {
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 500;
+  width: 100%;
+  margin-bottom: 20px;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-google:hover {
+  background-color: #f9f9f9;
+}
+
+.btn-google img {
+  height: 18px;
+  margin-right: 10px;
+}
+
+.divider {
+  text-align: center;
+  margin: 20px 0;
+  position: relative;
+}
+
+.divider::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #ddd;
+}
+
+.divider span {
+  background: white;
+  padding: 0 15px;
+  color: #666;
+  font-size: 14px;
+}
+
+.register-link {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.register-link a {
+  color: #001f66;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.register-link a:hover {
+  text-decoration: underline;
+}
+
+.navbar-login {
+  background-color: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 15px 0;
+}
+
+.navbar-login .navbar-brand {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-login .navbar-brand img {
+  height: 35px;
+}
+
+.navbar-login .navbar-nav .nav-link {
+  color: #333;
+  font-weight: 500;
+  margin: 0 15px;
+  padding: 8px 0;
+}
+
+.navbar-login .navbar-nav .nav-link.active {
+  color: #001f66;
+}

@@ -1,0 +1,390 @@
+<?php 
+$activePage = 'lowongan-saya';
+
+session_start();
+require_once __DIR__ . '/../../function/supabase.php';
+
+// Pastikan user sudah login
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'perusahaan') {
+    header('Location: login.php');
+    exit;
+}
+
+$user_id = $_SESSION['user_id'];
+
+// Ambil ID lowongan dari URL
+$job_id = isset($_GET['id']) ? $_GET['id'] : null;
+
+if (!$job_id) {
+    header('Location: lowongan.php');
+    exit;
+}
+
+// Cek status persetujuan perusahaan
+$company = supabaseQuery('perusahaan', [
+    'select' => 'id_perusahaan, status_persetujuan, nama_perusahaan, logo_url',
+    'id_pengguna' => 'eq.' . $user_id
+]);
+
+// Jika status menunggu, redirect ke waiting_approval
+if ($company['success'] && count($company['data']) > 0 && $company['data'][0]['status_persetujuan'] === 'menunggu') {
+    header('Location: waiting_approval.php');
+    exit;
+}
+
+// Jika belum ada data perusahaan, redirect ke edit_company
+if ($company['success'] && count($company['data']) === 0) {
+    header('Location: edit_company.php');
+    exit;
+}
+
+// Ambil data perusahaan untuk ditampilkan
+$id_perusahaan = $company['data'][0]['id_perusahaan'] ?? null;
+
+// Jika tidak ada id_perusahaan, redirect ke edit_company
+if (!$id_perusahaan) {
+    header('Location: edit_company.php');
+    exit;
+}
+
+// Ambil data lowongan dari database
+$jobResult = supabaseQuery('lowongan', [
+    'select' => '*',
+    'id_lowongan' => 'eq.' . $job_id,
+    'id_perusahaan' => 'eq.' . $id_perusahaan
+]);
+
+if (!$jobResult['success'] || empty($jobResult['data'])) {
+    header('Location: lowongan.php');
+    exit;
+}
+
+$job = $jobResult['data'][0];
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $data = [
+        'judul' => $_POST['judul'],
+        'gaji_range' => $_POST['gaji'],
+        'kategori' => $_POST['kategori'],
+        'lokasi' => $_POST['lokasi'],
+        'tipe_pekerjaan' => $_POST['tipe_pekerjaan'],
+        'mode_kerja' => $_POST['mode_kerja'] ?? '',
+        'deskripsi' => $_POST['deskripsi'],
+        'kualifikasi' => $_POST['kualifikasi'] ?? '',
+        'benefit' => $_POST['benefit'] ?? '',
+        'batas_tanggal' => $_POST['batas_tanggal'] ?: null,
+        'status' => $_POST['status']
+    ];
+    
+    $result = supabaseUpdate('lowongan', $data, 'id_lowongan', $job_id);
+    
+    if ($result['success']) {
+        echo '<script>alert("Lowongan berhasil diperbarui!"); window.location.href = "lowongan.php";</script>';
+        exit;
+    } else {
+        $error = "Gagal memperbarui lowongan";
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Lowongan - Karirku</title>
+    <link rel="stylesheet" href="../../assets/css/company/company.css">
+    <link href="../../assets/img/karirkulogo.ico" rel="icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        /* Background biru seperti perusahaan.php */
+        .content {
+            background: #f8f9fa;
+            min-height: 60vh;
+            padding: 20px;
+        }
+        
+        /* Card dengan shadow */
+        .profile-edit-container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.08);
+            border: 1px solid #e0f2fe;
+            position: relative;
+            margin-top: 20px;
+        }
+        
+        /* Header center dengan warna biru */
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0f2fe;
+            padding-top: 10px;
+        }
+        
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e40af; /* Biru lebih gelap */
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        
+        .page-subtitle {
+            color: #3b82f6; /* Biru medium */
+            font-size: 16px;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        /* Form styling */
+        .form-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .form-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #374151;
+            display: block;
+        }
+        
+        .form-group .form-control,
+        .form-group .form-select {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 14px;
+            background: #f9fafb;
+        }
+        
+        .form-group .form-control:focus,
+        .form-group .form-select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: white;
+        }
+        
+        .form-group textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+    
+        
+        /* Button Kembali - SIMPLE tanpa card/shadow */
+        .back-button {
+            text-decoration: none;
+            color: #1e40af; /* Biru tua seperti edit profil */
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            z-index: 100;
+            padding: 8px 0;
+            font-size: 16px;
+            background: none;
+            border: none;
+            position: absolute;
+            top: 40px;
+            left: 40px;
+        }
+
+        .back-button:hover {
+            color: #3b82f6; /* Biru lebih terang saat hover */
+            text-decoration: none;
+        }
+
+        .back-button i {
+            font-size: 18px;
+        }
+        
+        /* Form actions */
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 30px;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 40px;
+        }
+        
+        .required {
+            color: #ef4444;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        /* Alert styling */
+        .alert {
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .text-muted {
+            color: #6b7280 !important;
+        }
+        .topbar {
+            height: 81px !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <?php include 'sidebar.php'; ?>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <?php include "topbar_company.php" ?>
+
+            <!-- Content -->
+            <div class="content">
+                <div class="profile-edit-container">
+                    <!-- Button Kembali di DALAM card, kiri atas - SIMPLE tanpa card -->
+                    <a href="lowongan.php" class="back-button">
+                        <i class="bi bi-arrow-left"></i> Kembali
+                    </a>
+                    
+                    <!-- Header center dengan warna biru -->
+                    <div class="page-header">
+                        <h2 class="page-title">Edit Lowongan</h2>
+                        <p class="page-subtitle">Perbarui informasi lowongan pekerjaan</p>
+                    </div>
+
+                    <?php if (isset($error)): ?>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i><?php echo htmlspecialchars($error); ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    <?php endif; ?>
+
+                    <form method="POST" id="editJobForm">
+                        <div class="form-section">
+                            <!-- Kolom Kiri -->
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label"><span class="required">*</span> Judul Lowongan</label>
+                                    <input type="text" name="judul" class="form-control" placeholder="Masukkan judul lowongan" 
+                                           value="<?php echo htmlspecialchars($job['judul'] ?? ''); ?>" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label"><span class="required">*</span> Gaji</label>
+                                    <input type="text" name="gaji" class="form-control" placeholder="Rp ..." 
+                                           value="<?php echo htmlspecialchars($job['gaji_range'] ?? ''); ?>" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label"><span class="required">*</span> Kategori</label>
+                                    <select class="form-select" name="kategori" required>
+                                        <option value="IT & Software" <?php echo ($job['kategori'] ?? '') == 'IT & Software' ? 'selected' : ''; ?>>IT & Software</option>
+                                        <option value="Marketing" <?php echo ($job['kategori'] ?? '') == 'Marketing' ? 'selected' : ''; ?>>Marketing</option>
+                                        <option value="Design" <?php echo ($job['kategori'] ?? '') == 'Design' ? 'selected' : ''; ?>>Design</option>
+                                        <option value="Sales" <?php echo ($job['kategori'] ?? '') == 'Sales' ? 'selected' : ''; ?>>Sales</option>
+                                        <option value="Finance" <?php echo ($job['kategori'] ?? '') == 'Finance' ? 'selected' : ''; ?>>Finance</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="required">*</span> Lokasi Pekerjaan</label>
+                                        <input type="text" class="form-control" name="lokasi" 
+                                               value="<?php echo htmlspecialchars($job['lokasi'] ?? ''); ?>" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label"><span class="required">*</span> Tipe Pekerjaan</label>
+                                        <select class="form-select" name="tipe_pekerjaan" required>
+                                            <option value="Full-time" <?php echo ($job['tipe_pekerjaan'] ?? '') == 'Full-time' ? 'selected' : ''; ?>>Full-time</option>
+                                            <option value="Part-time" <?php echo ($job['tipe_pekerjaan'] ?? '') == 'Part-time' ? 'selected' : ''; ?>>Part-time</option>
+                                            <option value="Freelance" <?php echo ($job['tipe_pekerjaan'] ?? '') == 'Freelance' ? 'selected' : ''; ?>>Freelance</option>
+                                            <option value="Remote" <?php echo ($job['tipe_pekerjaan'] ?? '') == 'Remote' ? 'selected' : ''; ?>>Remote</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Mode Kerja</label>
+                                    <select class="form-select" name="mode_kerja">
+                                        <option value="WFO" <?php echo ($job['mode_kerja'] ?? '') == 'WFO' ? 'selected' : ''; ?>>WFO (Work From Office)</option>
+                                        <option value="WFH" <?php echo ($job['mode_kerja'] ?? '') == 'WFH' ? 'selected' : ''; ?>>WFH (Work From Home)</option>
+                                        <option value="Hybrid" <?php echo ($job['mode_kerja'] ?? '') == 'Hybrid' ? 'selected' : ''; ?>>Hybrid</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Kolom Kanan -->
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label"><span class="required">*</span> Deskripsi Pekerjaan</label>
+                                    <textarea class="form-control" name="deskripsi" rows="5" required><?php echo htmlspecialchars($job['deskripsi'] ?? ''); ?></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Kualifikasi</label>
+                                    <textarea class="form-control" name="kualifikasi" rows="4"><?php echo htmlspecialchars($job['kualifikasi'] ?? ''); ?></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Benefit</label>
+                                    <textarea class="form-control" name="benefit" rows="4"><?php echo htmlspecialchars($job['benefit'] ?? ''); ?></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Batas Tanggal (Opsional)</label>
+                                    <input type="date" class="form-control" name="batas_tanggal" 
+                                           value="<?php echo $job['batas_tanggal'] ?? ''; ?>">
+                                    <small class="text-muted" style="display: block; margin-top: 6px; font-size: 12px;">
+                                        Lowongan akan otomatis expired setelah tanggal ini
+                                    </small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-select" name="status">
+                                        <option value="publish" <?php echo ($job['status'] ?? '') == 'publish' ? 'selected' : ''; ?>>Publish</option>
+                                        <option value="draft" <?php echo ($job['status'] ?? '') == 'draft' ? 'selected' : ''; ?>>Draft</option>
+                                        <option value="ditinjau" <?php echo ($job['status'] ?? '') == 'ditinjau' ? 'selected' : ''; ?>>Ditinjau</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-circle me-2"></i>Simpan Perubahan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

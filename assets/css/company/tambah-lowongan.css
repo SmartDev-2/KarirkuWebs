@@ -1,0 +1,518 @@
+.content-wrapper {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.left-panel {
+  width: 230px;
+  flex-shrink: 0;
+}
+
+.right-panel {
+  flex: 1;
+}
+
+/* Card Rekomendasi dengan Header Biru */
+.recommendation-card {
+  background: white;
+  border-radius: 19px;
+  overflow: hidden;
+  box-shadow: 0 -10px 3px rgba(0, 46, 146, 1);
+  position: sticky;
+  top: 24px;
+  font-family: "Inter", sans-serif !important;
+}
+
+.recommendation-header {
+  background: linear-gradient(
+    90deg,
+    rgba(34, 75, 164, 0.3) 0%,
+    rgba(81, 48, 221, 0.3) 100%
+  );
+  color: white;
+  padding: 16px 20px;
+}
+
+.recommendation-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: #002e92;
+}
+
+.recommendation-body {
+  padding: 20px;
+}
+
+.recommendation-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.recommendation-item:hover {
+  background: #f3f4f6;
+}
+
+.checkbox-wrapper {
+  margin-top: 2px;
+  position: relative;
+}
+
+.recommendation-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  opacity: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+.custom-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  pointer-events: none;
+  cursor: default;
+}
+
+.custom-checkbox.checked {
+  background: #002e92;
+  border-color: #002e92;
+}
+
+.custom-checkbox.checked::after {
+  content: "✓";
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.custom-checkbox:not(.checked) {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.recommendation-text {
+  flex: 1;
+}
+
+.recommendation-text .title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1f2937;
+  margin-top: 3px;
+}
+
+.recommendation-text .desc {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.section-tabs {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #e5e7eb;
+  font-family: "Inter", sans-serif !important;
+}
+
+.section-tab {
+  padding: 12px 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.section-tab:hover {
+  color: #002e92;
+}
+
+.section-tab.active {
+  color: #002e92;
+}
+
+.section-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #002e92;
+}
+
+.section-content {
+  display: none;
+}
+
+.section-content.active {
+  display: block;
+}
+
+.form-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+  font-family: "Inter", sans-serif !important;
+}
+
+.form-card h2 {
+  font-size: 22px;
+  font-weight: bold;
+  color: #002e92;
+  margin-bottom: 16px;
+}
+
+.form-card p {
+  font-size: 12px;
+  font-weight: bold;
+  color: #002e92;
+  margin-bottom: 16px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: #002e92;
+  font-size: 12px;
+}
+
+.form-label .required {
+  color: #920002;
+}
+
+.form-card .required {
+  color: #920002;
+}
+
+.form-input,
+.form-textarea,
+.form-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form-input::placeholder {
+  color: #b1b1b1;
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #002e92;
+}
+
+.form-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.work-type-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.work-type-btn {
+  flex: none;
+  width: 135px;
+  height: 36px;
+  padding: 12px 22px;
+  border: 2px solid #d1d5db;
+  border-radius: 16px;
+  background: white;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.work-type-btn:hover {
+  border-color: #002e92;
+}
+
+.work-type-btn.active {
+  background: #002e92;
+  color: white;
+  border-color: #002e92;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-cancel {
+  padding: 10px 24px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+.btn-submit {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  background: #002e92;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 120px;
+}
+
+.btn-submit:hover {
+  background: #001f66;
+}
+
+/* Modal Part Time */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  background-color: white;
+  margin: 10% auto;
+  padding: 24px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #002e92;
+}
+
+.close-modal {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.time-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.time-slot {
+  padding: 10px;
+  border: 1px solid #224ba4;
+  border-radius: 4px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+  color: #2c4e97;
+}
+
+.time-slot:hover {
+  border-color: #002e92;
+}
+
+.time-slot.selected {
+  background: #002e92;
+  color: white;
+  border-color: #002e92;
+}
+
+@media (max-width: 968px) {
+  .content-wrapper {
+    flex-direction: column;
+  }
+
+  .left-panel {
+    width: 100%;
+    position: relative;
+  }
+
+  .recommendation-card {
+    position: relative;
+    top: 0;
+  }
+}
+
+/* Poster Ratio Options */
+.poster-ratio-options {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.poster-ratio-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.poster-ratio-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #002e92;
+}
+
+.poster-ratio-option label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+}
+
+/* Poster Upload dengan rasio 1:1 */
+.poster-upload {
+  border: 1px solid #002e92;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  max-width: 115px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.poster-upload:hover {
+  border-color: #002e92;
+  background: #f9fafb;
+}
+
+.upload-icon {
+  width: 34px;
+  height: 32px;
+  color: #002e92;
+  object-fit: contain;
+}
+
+.poster-upload p {
+  color: #002e92;
+  font-size: 10px;
+  margin-bottom: 0;
+}
+
+/* Container untuk poster upload dan informasi */
+.poster-upload-container {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.poster-info span {
+  color: #b1b1b1;
+  font-size: 10px;
+}
+
+.poster-info .bullet {
+  color: #b1b1b1;
+  font-size: 8px;
+}
+
+/* Informasi tambahan di samping poster */
+.poster-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.info-item .bullet {
+  color: #002e92;
+  font-weight: bold;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+  .poster-upload-container {
+    flex-direction: column;
+  }
+}
+
+.error-message {
+  color: #ff0000;
+  font-size: 12px;
+  margin-top: 4px;
+  display: none;
+}
+
+.textarea-error {
+  border-color: #ff0000 !important;
+}

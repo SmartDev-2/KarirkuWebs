@@ -1,0 +1,683 @@
+/* Reset dan layout umum */
+body {
+  background-color: white !important;
+}
+
+.activity-container {
+  max-width: 1250px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Back button */
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #003399;
+  text-decoration: none;
+  font-weight: 600;
+  margin-bottom: 25px;
+  padding: 10px 10px;
+  border-radius: 8px;
+  background: white !important;
+  transition: all 0.3s;
+}
+
+.back-button:hover {
+  background: #003399;
+  color: #003399;
+  transform: translateX(-5px);
+}
+
+/* Alert messages */
+.alert {
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+.alert i {
+  font-size: 18px;
+}
+
+/* Vertical Cards Layout */
+.cards-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.activity-card {
+  background: white;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  border: 1px solid #eaeaea;
+  width: 100%;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.card-header h6 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #003399;
+  margin: 0;
+}
+
+/* Applications Table */
+.applications-table,
+.saved-jobs-table {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.application-row,
+.job-row {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  margin-bottom: 12px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border-left: 4px solid #003399;
+  transition: all 0.3s;
+}
+
+.application-row:hover,
+.job-row:hover {
+  background: #eef7ff;
+  transform: translateY(-2px);
+}
+
+.job-logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-right: 15px;
+  border: 1px solid #ddd;
+  flex-shrink: 0;
+}
+
+.job-info {
+  flex: 1;
+}
+
+.job-title {
+  font-weight: 600;
+  color: #2b3940;
+  margin-bottom: 5px;
+  font-size: 16px;
+}
+
+.job-company {
+  font-size: 14px;
+  color: #6c757d;
+  margin-bottom: 5px;
+}
+
+.job-location {
+  font-size: 12px;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 80px;
+  text-align: center;
+}
+
+.status-diproses {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-diterima {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.status-ditolak {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status-lanjutan {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+/* Job Actions */
+.job-actions {
+  display: flex;
+  gap: 10px;
+  margin-left: 15px;
+  flex-shrink: 0;
+}
+
+.btn-view,
+.btn-remove,
+.btn-toggle {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.btn-view {
+  background: #003399;
+  color: white;
+}
+
+.btn-view:hover {
+  background: #002c77;
+}
+
+.btn-remove {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-remove:hover {
+  background: #c82333;
+}
+
+.btn-toggle {
+  background: transparent;
+  color: #003399;
+  border: 2px solid #003399;
+  width: 100%;
+  margin-top: 15px;
+  padding: 10px;
+}
+
+.btn-toggle:hover {
+  background: #003399;
+  color: white;
+}
+
+/* CV Table Style - Mirip dengan Lowongan Disimpan */
+.cv-table {
+  padding: 10px;
+}
+
+.cv-row {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border-left: 4px solid #28a745;
+  transition: all 0.3s;
+  gap: 15px;
+}
+
+.cv-row:hover {
+  background: #e8f5e8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+}
+
+.cv-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: white;
+  border-radius: 10px;
+  border: 2px solid #28a745;
+  flex-shrink: 0;
+}
+
+.cv-icon-wrapper i {
+  font-size: 32px;
+  color: #28a745;
+}
+
+.cv-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cv-title {
+  font-weight: 600;
+  color: #2b3940;
+  margin-bottom: 8px;
+  font-size: 16px;
+  word-break: break-word;
+}
+
+.cv-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.cv-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6c757d;
+  background: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.cv-date {
+  background: #d4edda !important;
+  color: #155724 !important;
+  font-weight: 500;
+}
+
+.cv-note {
+  background: #d1ecf1 !important;
+  color: #0c5460 !important;
+}
+
+.cv-actions-inline {
+  display: flex;
+  gap: 10px;
+  margin-left: 15px;
+  flex-shrink: 0;
+}
+
+.btn-action {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.btn-download {
+  background: #28a745;
+  color: white;
+}
+
+.btn-download:hover {
+  background: #218838;
+  transform: translateY(-2px);
+  color: white;
+}
+
+.btn-edit {
+  background: #ffc107;
+  color: #212529;
+  border: 2px solid #ffc107;
+}
+
+.btn-edit:hover {
+  background: #e0a800;
+  border-color: #e0a800;
+  transform: translateY(-2px);
+}
+
+.btn-delete-action {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-delete-action:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+}
+
+/* Responsive Design untuk CV Table */
+@media (max-width: 768px) {
+  .cv-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 20px 15px;
+  }
+
+  .cv-icon-wrapper {
+    align-self: center;
+    width: 70px;
+    height: 70px;
+  }
+
+  .cv-icon-wrapper i {
+    font-size: 36px;
+  }
+
+  .cv-info {
+    width: 100%;
+  }
+
+  .cv-meta {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .cv-meta span {
+    width: fit-content;
+  }
+
+  .cv-actions-inline {
+    width: 100%;
+    flex-wrap: wrap;
+    margin-left: 0;
+    justify-content: center;
+  }
+
+  .btn-action {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+}
+
+/* Untuk layar sangat kecil */
+@media (max-width: 480px) {
+  .cv-actions-inline {
+    flex-direction: column;
+  }
+
+  .btn-action {
+    width: 100%;
+  }
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-state i {
+  font-size: 48px;
+  color: #6c757d;
+  margin-bottom: 15px;
+}
+
+.empty-state p {
+  color: #6c757d;
+  font-size: 16px;
+}
+
+.show-toggle {
+  text-align: center;
+  margin-top: 15px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .activity-container {
+    padding: 15px;
+  }
+
+  .application-row,
+  .job-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .job-logo {
+    width: 60px;
+    height: 60px;
+    margin-right: 0;
+    align-self: center;
+  }
+
+  .job-info {
+    width: 100%;
+  }
+
+  .job-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
+  }
+
+  .status-badge {
+    align-self: flex-start;
+  }
+
+  .cv-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-download,
+  .btn-delete {
+    width: 100%;
+    justify-content: center;
+  }
+}
+/* CV-specific styling untuk konsistensi dengan lowongan disimpan */
+#cvList .job-row {
+  border-left: 4px solid #28a745 !important;
+}
+
+#cvList .job-row:hover {
+  background: #e8f5e8 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15) !important;
+}
+
+/* CV button styling */
+#cvList .btn-view {
+  background: #28a745 !important;
+  color: white !important;
+}
+
+#cvList .btn-view:hover {
+  background: #218838 !important;
+}
+
+#cvList .btn-edit {
+  background: #ffc107 !important;
+  color: #212529 !important;
+  border: 2px solid #ffc107 !important;
+}
+
+#cvList .btn-edit:hover {
+  background: #e0a800 !important;
+  border-color: #e0a800 !important;
+}
+
+#cvList .btn-remove {
+  background: #dc3545 !important;
+  color: white !important;
+}
+
+#cvList .btn-remove:hover {
+  background: #c82333 !important;
+}
+
+/* Scrollbar styling */
+.applications-table::-webkit-scrollbar,
+.saved-jobs-table::-webkit-scrollbar {
+  width: 6px;
+}
+
+.applications-table::-webkit-scrollbar-track,
+.saved-jobs-table::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.applications-table::-webkit-scrollbar-thumb,
+.saved-jobs-table::-webkit-scrollbar-thumb {
+  background: #003399;
+  border-radius: 10px;
+}
+
+.applications-table::-webkit-scrollbar-thumb:hover,
+.saved-jobs-table::-webkit-scrollbar-thumb:hover {
+  background: #002c77;
+}
+
+.job-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.job-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6c757d;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.job-saved-date {
+  background: #fff3cd !important;
+  color: #856404 !important;
+}
+
+/* CV-specific styling untuk konsistensi dengan lowongan disimpan */
+#cvList .job-row {
+  border-left: 4px solid #28a745 !important;
+  padding-left: 20px !important;
+}
+
+#cvList .job-row:hover {
+  background: #e8f5e8 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15) !important;
+}
+
+/* CV button styling */
+#cvList .btn-view {
+  background: #28a745 !important;
+  color: white !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s !important;
+  font-size: 14px !important;
+  white-space: nowrap !important;
+}
+
+#cvList .btn-view:hover {
+  background: #218838 !important;
+  transform: translateY(-1px) !important;
+}
+
+#cvList .btn-edit {
+  background: #ffc107 !important;
+  color: #212529 !important;
+  border: 2px solid #ffc107 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s !important;
+  font-size: 14px !important;
+  white-space: nowrap !important;
+}
+
+#cvList .btn-edit:hover {
+  background: #e0a800 !important;
+  border-color: #e0a800 !important;
+  transform: translateY(-1px) !important;
+}
+
+#cvList .btn-remove {
+  background: #dc3545 !important;
+  color: white !important;
+  border: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s !important;
+  font-size: 14px !important;
+  white-space: nowrap !important;
+}
+
+#cvList .btn-remove:hover {
+  background: #c82333 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Adjust job-info untuk CV tanpa logo */
+#cvList .job-row .job-info {
+  margin-left: 0 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  #cvList .job-actions {
+    width: 100% !important;
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    margin-top: 15px !important;
+  }
+
+  #cvList .btn-view,
+  #cvList .btn-edit,
+  #cvList .btn-remove {
+    flex: 1 !important;
+    min-width: 120px !important;
+    justify-content: center !important;
+  }
+}
