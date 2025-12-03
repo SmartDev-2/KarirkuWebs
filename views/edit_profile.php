@@ -4,17 +4,14 @@ require_once __DIR__ . '/../function/supabase.php';
 
 $isLoggedIn = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
 $userName = $_SESSION['user_name'] ?? '';
-$user_id = $_SESSION['user_id'];
-$user = getUserById($user_id);
-$pencaker = getPencakerByUserId($user_id);
+$user_id = $_SESSION['user_id'] ?? null;
+
 // Pastikan user sudah login
-if (!isset($_SESSION['user_id'])) {
+if (!isset($user_id)) {
     header('Location: login.php');
     exit;
 }
 
-$tanggal_lahir = !empty(trim($_POST['tanggal_lahir'] ?? '')) ? $_POST['tanggal_lahir'] : null;
-$user_id = $_SESSION['user_id'];
 $user = getUserById($user_id);
 $pencaker = getPencakerByUserId($user_id);
 
@@ -93,12 +90,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($result['success']) {
-            $message = $isEdit ? 'Profil berhasil diperbarui!' : 'Profil berhasil dibuat!';
-            // Refresh data pencaker
-            $pencaker = getPencakerByUserId($user_id);
-
             // Update session
             $_SESSION['nama_lengkap'] = $nama_lengkap;
+            
+            // Redirect ke halaman profil setelah 2 detik untuk memberi feedback
+            header('Refresh: 2; URL=profile.php');
+            $message = $isEdit ? 'Profil berhasil diperbarui! Mengarahkan ke halaman profil...' : 'Profil berhasil dibuat! Mengarahkan ke halaman profil...';
         } else {
             $error = $isEdit ? 'Gagal memperbarui profil. Silakan coba lagi.' : 'Gagal membuat profil. Silakan coba lagi.';
         }
@@ -394,10 +391,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Foto Profil -->
                 <div class="text-center mb-4">
                     <div class="profile-image-wrapper">
-                        <img src="<?php echo !empty($pencaker['foto_profil_url']) ? htmlspecialchars($pencaker['foto_profil_url']) : '../assets/img/default-avatar.png'; ?>"
-                            alt="Profile"
-                            class="profile-image-preview"
-                            id="imagePreview">
+                        <img src="<?php echo !empty($pencaker['foto_profil_url']) ? htmlspecialchars($pencaker['foto_profil_url']) : '../assets/img/default-avatar.png'; ?>" 
+                             alt="Profile" 
+                             class="profile-image-preview" 
+                             id="imagePreview">
                         <label class="add-photo-btn" title="Pilih foto profil">
                             <i class="bi bi-plus-lg"></i>
                             <input type="file" name="foto_profil" accept="image/*" id="fotoInput" onchange="previewImage(event)">
@@ -409,27 +406,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="nama_lengkap"
-                            value="<?php echo htmlspecialchars($pencaker['nama_lengkap'] ?? ''); ?>" required>
+                        <input type="text" class="form-control" name="nama_lengkap" 
+                               value="<?php echo htmlspecialchars($pencaker['nama_lengkap'] ?? ''); ?>" required>
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Email <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control" name="email_pencaker"
-                            value="<?php echo htmlspecialchars($pencaker['email_pencaker'] ?? $user['email']); ?>" required>
+                        <input type="email" class="form-control" name="email_pencaker" 
+                               value="<?php echo htmlspecialchars($pencaker['email_pencaker'] ?? $user['email']); ?>" required>
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">No. HP <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="no_hp"
-                            value="<?php echo htmlspecialchars($pencaker['no_hp'] ?? ''); ?>"
-                            placeholder="08xxxxxxxxxx" required>
+                        <input type="text" class="form-control" name="no_hp" 
+                               value="<?php echo htmlspecialchars($pencaker['no_hp'] ?? ''); ?>" 
+                               placeholder="08xxxxxxxxxx" required>
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Tanggal Lahir</label>
-                        <input type="date" class="form-control" name="tanggal_lahir"
-                            value="<?php echo htmlspecialchars($pencaker['tanggal_lahir'] ?? ''); ?>">
+                        <input type="date" class="form-control" name="tanggal_lahir" 
+                               value="<?php echo htmlspecialchars($pencaker['tanggal_lahir'] ?? ''); ?>">
                     </div>
 
                     <div class="col-md-6 mb-3">
@@ -444,15 +441,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Pengalaman Kerja (Tahun)</label>
-                        <input type="number" class="form-control" name="pengalaman_tahun"
-                            min="0" max="50"
-                            value="<?php echo htmlspecialchars($pencaker['pengalaman_tahun'] ?? '0'); ?>">
+                        <input type="number" class="form-control" name="pengalaman_tahun" 
+                               min="0" max="50" 
+                               value="<?php echo htmlspecialchars($pencaker['pengalaman_tahun'] ?? '0'); ?>">
                     </div>
 
                     <div class="col-12 mb-3">
                         <label class="form-label">Alamat</label>
-                        <textarea class="form-control" name="alamat" rows="3"
-                            placeholder="Masukkan alamat lengkap Anda"><?php echo htmlspecialchars($pencaker['alamat'] ?? ''); ?></textarea>
+                        <textarea class="form-control" name="alamat" rows="3" 
+                                  placeholder="Masukkan alamat lengkap Anda"><?php echo htmlspecialchars($pencaker['alamat'] ?? ''); ?></textarea>
                     </div>
                 </div>
 

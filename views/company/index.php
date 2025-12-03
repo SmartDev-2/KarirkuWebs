@@ -1,5 +1,5 @@
 <?php
-$activePage = 'halaman-utama'; // Set halaman aktif
+$activePage = 'halaman-utama';
 
 session_start();
 require_once __DIR__ . '/../../function/supabase.php';
@@ -35,45 +35,56 @@ $nama_perusahaan = $company['data'][0]['nama_perusahaan'] ?? 'Perusahaan';
 $logo_url = $company['data'][0]['logo_url'] ?? '';
 $id_perusahaan = $company['data'][0]['id_perusahaan'] ?? '';
 
+// Inisialisasi variabel
 $totalPelamar = 0;
 $lowonganDisukai = 0;
-$totalPengunjung = 0;
+$totalLowonganAktif = 0;
 
 // Query untuk mendapatkan statistik
 if ($id_perusahaan) {
-    // Hitung total pelamar dari semua lowongan
-    $aplikasi = supabaseQuery('aplikasi', [
-        'select' => 'id_aplikasi',
-        'id_perusahaan' => 'eq.' . $id_perusahaan
-    ]);
-    $totalPelamar = $aplikasi['success'] ? count($aplikasi['data']) : 0;
-
-    // Hitung jumlah bookmark lowongan
+    // Ambil semua lowongan perusahaan
     $lowongan = supabaseQuery('lowongan', [
-        'select' => 'id_lowongan',
+        'select' => 'id_lowongan, status',
         'id_perusahaan' => 'eq.' . $id_perusahaan
     ]);
 
-    if ($lowongan['success'] && count($lowongan['data']) > 0) {
+    if ($lowongan['success']) {
+        $id_lowongan_array = [];
         foreach ($lowongan['data'] as $job) {
-            $bookmark = supabaseQuery('bookmark', [
-                'select' => 'id_bookmark',
-                'id_lowongan' => 'eq.' . $job['id_lowongan']
+            $id_lowongan_array[] = $job['id_lowongan'];
+
+            // Hitung lowongan aktif (status 'publish')
+            if ($job['status'] === 'publish') {
+                $totalLowonganAktif++;
+            }
+        }
+
+        // Hitung total pelamar dari semua lowongan perusahaan
+        if (!empty($id_lowongan_array)) {
+            $pelamar = supabaseQuery('lamaran', [
+                'select' => 'id_lamaran',
+                'id_lowongan' => 'in.(' . implode(',', $id_lowongan_array) . ')'
             ]);
-            $lowonganDisukai += $bookmark['success'] ? count($bookmark['data']) : 0;
+            $totalPelamar = $pelamar['success'] ? count($pelamar['data']) : 0;
+        }
+
+        // Hitung jumlah bookmark/lowongan disukai
+        if (!empty($id_lowongan_array)) {
+            $bookmark = supabaseQuery('favorit_lowongan', [
+                'select' => 'id_favorit',
+                'id_lowongan' => 'in.(' . implode(',', $id_lowongan_array) . ')'
+            ]);
+            $lowonganDisukai = $bookmark['success'] ? count($bookmark['data']) : 0;
         }
     }
-
-    // Total pengunjung (simulasi - bisa diambil dari tabel kunjungan jika ada)
-    $totalPengunjung = rand(800, 1200); // Placeholder
 }
 
-// Hitung kesehatan perusahaan (0-100)
+// Hitung kesehatan perusahaan (0-100) dengan bobot baru
 $maxScore = 100;
-$pelamarScore = min(($totalPelamar / 50) * 40, 40); // Max 40 poin
-$likeScore = min(($lowonganDisukai / 100) * 30, 30); // Max 30 poin
-$visitScore = min(($totalPengunjung / 1000) * 30, 30); // Max 30 poin
-$kesehatanScore = round($pelamarScore + $likeScore + $visitScore);
+$pelamarScore = min(($totalPelamar / 100) * 40, 40); // Max 40 poin (100 pelamar = 40 poin)
+$likeScore = min(($lowonganDisukai / 50) * 30, 30);  // Max 30 poin (50 like = 30 poin)
+$jobScore = min(($totalLowonganAktif / 10) * 30, 30); // Max 30 poin (10 lowongan aktif = 30 poin)
+$kesehatanScore = round($pelamarScore + $likeScore + $jobScore);
 
 // Tentukan kategori kesehatan
 if ($kesehatanScore >= 80) {
@@ -86,24 +97,64 @@ if ($kesehatanScore >= 80) {
     $kesehatanLabel = "Cukup";
     $kesehatanColor = "#f59e0b";
 } else {
-    $kesehatanLabel = "Perlu perbaikan";
+    $kesehatanLabel = "Tidak Baik";
     $kesehatanColor = "#ef4444";
 }
 
 // Hitung masalah yang perlu diselesaikan (lowongan ditolak dalam 2 minggu terakhir)
 $masalahCount = 0;
 if ($id_perusahaan) {
-    // Hitung tanggal 2 minggu yang lalu
     $duaMingguLalu = date('Y-m-d H:i:s', strtotime('-2 weeks'));
-    
+
     $lowonganBermasalah = supabaseQuery('lowongan', [
         'select' => 'id_lowongan, status, dibuat_pada, judul',
         'id_perusahaan' => 'eq.' . $id_perusahaan,
         'status' => 'eq.ditolak',
-        'dibuat_pada' => 'gt.' . $duaMingguLalu 
+        'dibuat_pada' => 'gt.' . $duaMingguLalu
     ]);
-    
+
     $masalahCount = $lowonganBermasalah['success'] ? count($lowonganBermasalah['data']) : 0;
+}
+
+// Query untuk mendapatkan statistik - VERSI DIPERBAIKI
+if ($id_perusahaan) {
+    // Ambil SEMUA data lowongan perusahaan sekaligus
+    $lowongan = supabaseQuery('lowongan', [
+        'select' => 'id_lowongan, status',
+        'id_perusahaan' => 'eq.' . $id_perusahaan
+    ]);
+
+    if ($lowongan['success']) {
+        $id_lowongan_array = [];
+        $totalLowonganAktif = 0; // Reset counter
+
+        foreach ($lowongan['data'] as $job) {
+            $id_lowongan_array[] = $job['id_lowongan'];
+
+            // Hitung lowongan aktif (status 'publish')
+            if (strtolower($job['status']) === 'publish') {
+                $totalLowonganAktif++;
+            }
+        }
+
+        // Hitung total pelamar dari semua lowongan perusahaan
+        if (!empty($id_lowongan_array)) {
+            $pelamar = supabaseQuery('lamaran', [
+                'select' => 'id_lamaran',
+                'id_lowongan' => 'in.(' . implode(',', $id_lowongan_array) . ')'
+            ]);
+            $totalPelamar = $pelamar['success'] ? count($pelamar['data']) : 0;
+        }
+
+        // Hitung jumlah bookmark/lowongan disukai
+        if (!empty($id_lowongan_array)) {
+            $bookmark = supabaseQuery('favorit_lowongan', [
+                'select' => 'id_favorit',
+                'id_lowongan' => 'in.(' . implode(',', $id_lowongan_array) . ')'
+            ]);
+            $lowonganDisukai = $bookmark['success'] ? count($bookmark['data']) : 0;
+        }
+    }
 }
 ?>
 
@@ -375,6 +426,7 @@ if ($id_perusahaan) {
                         $pelamarDiproses = 0;
                         $pelamarDiterima = 0;
                         $pelamarDitolak = 0;
+                        $pelamarSelesai = 0;
 
                         if ($id_perusahaan) {
                             // Ambil semua lowongan perusahaan
@@ -409,6 +461,9 @@ if ($id_perusahaan) {
                                     'status' => 'eq.ditolak'
                                 ]);
                                 $pelamarDitolak = $resultDitolak['success'] ? count($resultDitolak['data']) : 0;
+
+                                // Hitung pelamar selesai (diterima + ditolak)
+                                $pelamarSelesai = $pelamarDiterima + $pelamarDitolak;
                             }
                         }
                         ?>
@@ -428,9 +483,9 @@ if ($id_perusahaan) {
                             <div class="action-card-label">Pelamar Telah Ditolak</div>
                         </a>
 
-                        <a href="manajemen-pelamar.php" class="action-card">
-                            <div class="action-card-number">0</div>
-                            <div class="action-card-label">Pelamar Lanjutan</div>
+                        <a href="manajemen-pelamar.php?status=selesai" class="action-card">
+                            <div class="action-card-number"><?php echo $pelamarDiterima + $pelamarDitolak; ?></div>
+                            <div class="action-card-label">Selesai</div>
                         </a>
                     </div>
                 </div>
@@ -449,13 +504,13 @@ if ($id_perusahaan) {
                         </div>
 
                         <div class="performa-stat-item">
-                            <div class="performa-stat-label">Jumlah Lowongan disukai</div>
+                            <div class="performa-stat-label">Jumlah Lowongan Disukai</div>
                             <div class="performa-stat-value"><?php echo $lowonganDisukai; ?></div>
                         </div>
 
                         <div class="performa-stat-item">
-                            <div class="performa-stat-label">Total Pengunjung Perusahaan</div>
-                            <div class="performa-stat-value"><?php echo $totalPengunjung; ?></div>
+                            <div class="performa-stat-label">Lowongan Aktif</div>
+                            <div class="performa-stat-value"><?php echo $totalLowonganAktif; ?></div>
                         </div>
 
                         <div class="performa-stat-item">
@@ -472,7 +527,7 @@ if ($id_perusahaan) {
                     <!-- Masalah Perlu diselesaikan -->
                     <div class="masalah-card">
                         <h3 class="masalah-header">Masalah Perlu diselesaikan</h3>
-                            <p class="masalah-subtext">Lowongan yang ditolak dalam 2 minggu terakhir</p>
+                        <p class="masalah-subtext">Lowongan yang ditolak dalam 2 minggu terakhir</p>
 
                         <div class="masalah-count-container">
                             <div class="masalah-count-label">Lowongan bermasalah</div>
@@ -493,11 +548,49 @@ if ($id_perusahaan) {
                                 <i class="fas fa-exclamation"></i>
                             </div>
                             <div class="chat-bubble-content">
-                                <strong>Isi lowongan anda bermasalah</strong>
+                                <strong>Peringatan untuk akun anda</strong>
                                 <ul class="chat-bubble-list">
-                                    <li>Lowongan tidak boleh mengandung kata kata diskriminatif</li>
-                                    <li>Lowongan tidak boleh mengandung konten sensitif</li>
-                                    <li>Pastikan lowongan sesuai dengan kebijakan KarirKu</li>
+                                    <?php
+                                    // Kriteria 1: Terdapat pelamar yang belum diproses
+                                    if ($pelamarDiproses > 0): ?>
+                                        <li>Terdapat <strong><?php echo $pelamarDiproses; ?> pelamar</strong> yang belum diproses</li>
+                                    <?php endif; ?>
+
+                                    <?php
+                                    // Kriteria 2: Data perusahaan tidak lengkap
+                                    // Cek apakah ada field penting yang kosong
+                                    $dataPerusahaanLengkap = true;
+                                    if (isset($company['data'][0])) {
+                                        $companyData = $company['data'][0];
+                                        // Cek field-field penting (sesuaikan dengan kebutuhan)
+                                        $importantFields = ['nama_perusahaan', 'deskripsi', 'lokasi', 'no_telp', 'email'];
+                                        foreach ($importantFields as $field) {
+                                            if (empty($companyData[$field]) || trim($companyData[$field]) === '') {
+                                                $dataPerusahaanLengkap = false;
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    if (!$dataPerusahaanLengkap): ?>
+                                        <li>Data perusahaan anda tidak lengkap. Harap lengkapi profil perusahaan</li>
+                                    <?php endif; ?>
+
+                                    <?php
+                                    // Kriteria 3: Lowongan bermasalah hampir mencapai batas
+                                    // Batas adalah 6 kali lowongan ditolak (sesuai dengan pesan di atas)
+                                    $batasMaksimal = 6;
+                                    $peringatanBatas = 3; // Tampilkan peringatan jika sudah mendekati batas (misal 3)
+
+                                    if ($masalahCount >= $peringatanBatas && $masalahCount < $batasMaksimal): ?>
+                                        <li>Lowongan bermasalah anda (<?php echo $masalahCount; ?>) hampir mencapai batas maksimal (<?php echo $batasMaksimal; ?>)</li>
+                                    <?php endif; ?>
+
+                                    <?php
+                                    // Jika tidak ada kriteria yang terpenuhi, tampilkan pesan default
+                                    if ($pelamarDiproses == 0 && $dataPerusahaanLengkap && ($masalahCount < $peringatanBatas || $masalahCount >= $batasMaksimal)): ?>
+                                        <li>Tidak ada peringatan saat ini. Pertahankan performa akun anda!</li>
+                                    <?php endif; ?>
                                 </ul>
                             </div>
                         </div>

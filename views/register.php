@@ -220,8 +220,6 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
                     <a href="job-list.php" class="nav-item nav-link">Cari Pekerjaan</a>
                 </div>
                 <div class="auth-buttons d-flex align-items-center">
-                    <a href="register.php" class="btn-register">Register</a>
-                    <a href="login.php" class="btn-login">Login</a>
                 </div>
             </div>
         </div>

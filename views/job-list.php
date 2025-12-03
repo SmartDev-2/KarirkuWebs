@@ -534,7 +534,7 @@ if (isset($_GET['debug'])) {
                         $fotoProfil = $pencaker['foto_profil_url'] ?? '';
                         ?>
                         <div class="dropdown">
-                            <button class="btn user-dropdown dropdown-toggle text-white p-0 border-0 bg-transparent" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="box-shadow: none !important; background-color: white !important;">
+                            <button class="btn user-dropdown dropdown-toggle text-white p-0 border-0 bg-transparent" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="box-shadow: none !important; background-color: white !important;" onclick="window.location.href='profile.php'">>
                                 <?php if (!empty($fotoProfil)): ?>
                                     <img src="<?= htmlspecialchars($fotoProfil) ?>" alt="Profile" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover; border: none;">
                                 <?php else: ?>
@@ -543,16 +543,6 @@ if (isset($_GET['debug'])) {
                                     </div>
                                 <?php endif; ?>
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" href="profile.php"><i class="fas fa-user-circle me-2"></i>Profil</a></li>
-                                <li><a class="dropdown-item" href="my-applications.php"><i class="fas fa-briefcase me-2"></i>Lamaran Saya</a></li>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li><a class="dropdown-item text-danger" href="logout.php">
-                                        <i class="fas fa-sign-out-alt me-2"></i>Logout
-                                    </a></li>
-                            </ul>
                         </div>
                     <?php else: ?>
                         <a href="register.php" class="btn-register">Register</a>

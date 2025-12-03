@@ -59,14 +59,15 @@ function supabaseQuery($table, $params = [], $options = [])
     return $result;
 }
 
-function supabaseInsert($table, $data) {
+function supabaseInsert($table, $data)
+{
     global $supabase_url, $supabase_key; // ✅ FIXED: Use correct variable names
-    
+
     $url = $supabase_url . '/rest/v1/' . $table;
-    
+
     error_log("Supabase Insert - URL: " . $url);
     error_log("Supabase Insert - Data: " . json_encode($data));
-    
+
     $ch = curl_init();
     curl_setopt_array($ch, [
         CURLOPT_URL => $url,
@@ -83,15 +84,15 @@ function supabaseInsert($table, $data) {
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => 0
     ]);
-    
+
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
     curl_close($ch);
-    
+
     // ✅ BETTER ERROR HANDLING
     $responseData = json_decode($response, true);
-    
+
     $result = [
         'success' => ($httpCode >= 200 && $httpCode < 300),
         'http_code' => $httpCode,
@@ -99,9 +100,9 @@ function supabaseInsert($table, $data) {
         'error' => $error,
         'raw_response' => $response
     ];
-    
+
     error_log("Supabase Insert Full Result: " . print_r($result, true));
-    
+
     return $result;
 }
 
@@ -109,7 +110,21 @@ function supabaseUpdate($table, $data, $column, $value)
 {
     global $supabase_url, $supabase_key;
 
-    $url = $supabase_url . '/rest/v1/' . $table . '?' . $column . '=eq.' . $value;
+    // PERBAIKAN: Tangani jika $column dan $value adalah array (untuk kondisi yang lebih kompleks)
+    $query = '';
+    if (is_array($column) && is_array($value)) {
+        // Jika berupa array kondisi
+        $conditions = [];
+        foreach ($column as $col => $val) {
+            $conditions[] = $col . '=eq.' . $val;
+        }
+        $query = implode('&', $conditions);
+    } else {
+        // Jika berupa single condition
+        $query = $column . '=eq.' . $value;
+    }
+
+    $url = $supabase_url . '/rest/v1/' . $table . '?' . $query;
 
     $ch = curl_init();
     curl_setopt_array($ch, [
@@ -127,14 +142,22 @@ function supabaseUpdate($table, $data, $column, $value)
 
     $response = curl_exec($ch);
     $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
     curl_close($ch);
 
     $result = json_decode($response, true);
 
+    error_log("Supabase Update - URL: " . $url);
+    error_log("Supabase Update - Data: " . json_encode($data));
+    error_log("Supabase Update - Response: " . $response);
+    error_log("Supabase Update - Status: " . $statusCode);
+
     return [
         'success' => $statusCode >= 200 && $statusCode < 300,
         'data' => $result,
-        'status' => $statusCode
+        'status' => $statusCode,
+        'error' => $error,
+        'raw_response' => $response
     ];
 }
 
@@ -262,14 +285,15 @@ function getUserWithPencakerProfile($userId)
 }
 
 // Fungsi untuk upload file ke Supabase Storage dengan Service Role Key
-function supabaseStorageUpload($bucket, $path, $file) {
+function supabaseStorageUpload($bucket, $path, $file)
+{
     global $supabase_url, $supabase_key;
 
     $url = $supabase_url . '/storage/v1/object/' . $bucket . '/' . $path;
 
     // Baca file sebagai string biner
     $fileContent = file_get_contents($file['tmp_name']);
-    
+
     if ($fileContent === false) {
         return [
             'success' => false,
@@ -310,7 +334,8 @@ function supabaseStorageUpload($bucket, $path, $file) {
 }
 
 // Fungsi untuk menghapus file dari Supabase Storage
-function supabaseStorageDelete($bucket, $path) {
+function supabaseStorageDelete($bucket, $path)
+{
     global $supabase_url, $supabase_key;
 
     $url = $supabase_url . '/storage/v1/object/' . $bucket . '/' . $path;
@@ -349,10 +374,11 @@ function getStoragePublicUrl($bucket, $path)
 }
 
 // Fungsi untuk ambil lowongan dengan detail perusahaan
-function getLowonganWithPerusahaan() {
+function getLowonganWithPerusahaan()
+{
     $lowongan = supabaseQuery('lowongan', ['select' => '*']);
     $perusahaan = supabaseQuery('perusahaan', ['select' => '*']);
-    
+
     // Lakukan join manual di PHP
     foreach ($lowongan['data'] as &$low) {
         foreach ($perusahaan['data'] as $per) {
@@ -362,7 +388,7 @@ function getLowonganWithPerusahaan() {
             }
         }
     }
-    
+
     return $lowongan;
 }
 
@@ -375,7 +401,8 @@ function getLowonganWithPerusahaan() {
 // }
 
 // Fungsi untuk menghapus data dari tabel Supabase
-function supabaseDelete($table, $column, $value) {
+function supabaseDelete($table, $column, $value)
+{
     global $supabase_url, $supabase_key;
 
     $url = $supabase_url . '/rest/v1/' . $table . '?' . $column . '=eq.' . $value;
@@ -409,10 +436,11 @@ function supabaseDelete($table, $column, $value) {
 }
 
 // Fungsi untuk mendapatkan notifikasi lowongan baru
-function getNotifikasiLowonganBaru($userId, $limit = 10) {
+function getNotifikasiLowonganBaru($userId, $limit = 10)
+{
     // Ambil waktu terakhir user melihat notifikasi (simpan di session atau database)
     $lastChecked = $_SESSION['last_notification_check'] ?? date('Y-m-d H:i:s', strtotime('-1 day'));
-    
+
     $result = supabaseQuery('lowongan', [
         'select' => '*, perusahaan(nama_perusahaan, logo_url)',
         'dibuat_pada' => 'gt.' . $lastChecked,
@@ -425,15 +453,17 @@ function getNotifikasiLowonganBaru($userId, $limit = 10) {
 }
 
 // Fungsi untuk menandai notifikasi telah dilihat
-function updateLastNotificationCheck($userId) {
+function updateLastNotificationCheck($userId)
+{
     $_SESSION['last_notification_check'] = date('Y-m-d H:i:s');
     return true;
 }
 
 // Fungsi untuk menghitung notifikasi belum dilihat
-function countUnseenNotifications($userId) {
+function countUnseenNotifications($userId)
+{
     $lastChecked = $_SESSION['last_notification_check'] ?? date('Y-m-d H:i:s', strtotime('-1 day'));
-    
+
     $result = supabaseQuery('lowongan', [
         'select' => 'id_lowongan',
         'dibuat_papan' => 'gt.' . $lastChecked,
@@ -445,62 +475,66 @@ function countUnseenNotifications($userId) {
 }
 // Tambahkan di file function/supabase.php jika belum ada
 
-function supabaseAuth($email, $password) {
+function supabaseAuth($email, $password)
+{
     // Implementasi autentikasi Supabase
 }
 
-function supabaseGetUser($accessToken) {
+function supabaseGetUser($accessToken)
+{
     // Implementasi get user data
 }
 
 // Fungsi untuk mendapatkan jumlah pelamar berdasarkan status - VERSI DIPERBAIKI
-function getJumlahPelamarByStatus($id_perusahaan, $status = null) {
+function getJumlahPelamarByStatus($id_perusahaan, $status = null)
+{
     // Ambil semua lowongan perusahaan
     $lowongan = supabaseQuery('lowongan', [
         'select' => 'id_lowongan',
         'id_perusahaan' => 'eq.' . $id_perusahaan
     ]);
-    
+
     if (!$lowongan['success'] || count($lowongan['data']) === 0) {
         return 0;
     }
-    
+
     $id_lowongan_array = array_column($lowongan['data'], 'id_lowongan');
     $params = [
         'select' => 'id_lamaran',
         'id_lowongan' => 'in.(' . implode(',', $id_lowongan_array) . ')'
     ];
-    
+
     if ($status) {
         $params['status'] = 'eq.' . $status;
     }
-    
+
     $result = supabaseQuery('lamaran', $params);
     return $result['success'] ? count($result['data']) : 0;
 }
 
 // Fungsi untuk mendapatkan detail pelamar - VERSI DIPERBAIKI
-function getPelamarByStatus($id_perusahaan, $status = null, $limit = 50) {
+function getPelamarByStatus($id_perusahaan, $status = null, $limit = 50)
+{
     // Ambil semua lowongan perusahaan
     $lowongan = supabaseQuery('lowongan', [
         'select' => 'id_lowongan, judul',
         'id_perusahaan' => 'eq.' . $id_perusahaan
     ]);
-    
+
     if (!$lowongan['success']) {
         return ['success' => false, 'data' => []];
     }
-    
+
     $id_lowongan_array = array_column($lowongan['data'], 'id_lowongan');
     $lowongan_dict = [];
     foreach ($lowongan['data'] as $low) {
         $lowongan_dict[$low['id_lowongan']] = $low['judul'];
     }
-    
+
     if (empty($id_lowongan_array)) {
         return ['success' => true, 'data' => []];
     }
-    
+
     // Query yang diperbaiki - sesuai dengan schema database
     $params = [
         'select' => '*, pencaker(nama_lengkap, email_pencaker, no_hp), lowongan(judul)',
@@ -508,13 +542,13 @@ function getPelamarByStatus($id_perusahaan, $status = null, $limit = 50) {
         'order' => 'dibuat_pada.desc',
         'limit' => $limit
     ];
-    
+
     if ($status) {
         $params['status'] = 'eq.' . $status;
     }
-    
+
     $result = supabaseQuery('lamaran', $params);
-    
+
     // Format data untuk konsistensi - DIPERBAIKI
     if ($result['success'] && isset($result['data'])) {
         foreach ($result['data'] as &$lamaran) {
@@ -525,7 +559,7 @@ function getPelamarByStatus($id_perusahaan, $status = null, $limit = 50) {
             $lamaran['tanggal_lamaran'] = $lamaran['dibuat_pada'] ?? ''; // Sesuai schema
             $lamaran['catatan_pelamar'] = $lamaran['catatan'] ?? ''; // Sesuai schema
             $lamaran['cv_url'] = $lamaran['cv_url'] ?? '';
-            
+
             // Field pendidikan, pengalaman, keahlian tidak ada di tabel lamaran
             // Jadi kita kosongkan saja atau bisa diambil dari tabel pencaker jika perlu
             $lamaran['pendidikan'] = '';
@@ -533,12 +567,13 @@ function getPelamarByStatus($id_perusahaan, $status = null, $limit = 50) {
             $lamaran['keahlian'] = '';
         }
     }
-    
+
     return $result;
 }
 
 // Fungsi untuk mendapatkan lamaran oleh pencaker
-function getLamaranByPencaker($id_pencaker, $limit = 50) {
+function getLamaranByPencaker($id_pencaker, $limit = 50)
+{
     return supabaseQuery('lamaran', [
         'select' => '*, lowongan(judul, lokasi, perusahaan(nama_perusahaan, logo_url))',
         'id_pencaker' => 'eq.' . $id_pencaker,
@@ -547,37 +582,47 @@ function getLamaranByPencaker($id_pencaker, $limit = 50) {
     ]);
 }
 
-// Fungsi untuk update status lamaran - PERBAIKAN
-function updateStatusLamaran($id_lamaran, $status, $catatan_perusahaan = '') {
+// Fungsi untuk update status lamaran - PERBAIKAN ULANG
+function updateStatusLamaran($id_lamaran, $status, $catatan_perusahaan = '')
+{
     $updateData = [
-        'status' => $status,
-        'catatan_perusahaan' => $catatan_perusahaan,
-        'diperbarui_pada' => date('Y-m-d H:i:s')
+        'status' => $status
     ];
-    
+
+    // Tambahkan catatan perusahaan jika ada
+    if (!empty($catatan_perusahaan)) {
+        $updateData['catatan_perusahaan'] = $catatan_perusahaan;
+    }
+
+    // Tambahkan timestamp update
+    $updateData['diperbarui_pada'] = date('Y-m-d H:i:s');
+
     // Debug log
     error_log("Updating lamaran ID: " . $id_lamaran . " with status: " . $status);
-    
+
+    // PERBAIKAN: Gunakan parameter yang benar
     $result = supabaseUpdate('lamaran', $updateData, 'id_lamaran', $id_lamaran);
-    
+
     // Debug log hasil
     error_log("Update result: " . print_r($result, true));
-    
+
     return $result;
 }
 
 // Fungsi untuk mendapatkan detail lowongan dengan perusahaan
-function getLowonganWithPerusahaanDetail($id_lowongan) {
+function getLowonganWithPerusahaanDetail($id_lowongan)
+{
     $result = supabaseQuery('lowongan', [
         'select' => '*, perusahaan(nama_perusahaan, logo_url, lokasi)',
         'id_lowongan' => 'eq.' . $id_lowongan
     ]);
-    
+
     return $result['success'] && !empty($result['data']) ? $result['data'][0] : null;
 }
 
 // Fungsi untuk mendapatkan semua favorit pencaker
-function getFavoritByPencaker($id_pencaker) {
+function getFavoritByPencaker($id_pencaker)
+{
     return supabaseQuery('favorit_lowongan', [
         'select' => '*, lowongan(*, perusahaan(nama_perusahaan, logo_url))',
         'id_pencaker' => 'eq.' . $id_pencaker,
@@ -586,23 +631,78 @@ function getFavoritByPencaker($id_pencaker) {
 }
 
 // Fungsi untuk menambahkan ke favorit
-function addToFavorites($id_pencaker, $id_lowongan) {
+function addToFavorites($id_pencaker, $id_lowongan)
+{
     $data = [
         'id_pencaker' => $id_pencaker,
         'id_lowongan' => $id_lowongan,
         'dibuat_pada' => date('Y-m-d H:i:s')
     ];
-    
+
     return supabaseInsert('favorit_lowongan', $data);
 }
 
 // Fungsi untuk mengecek apakah lowongan sudah di-favorit
-function isJobFavorited($id_pencaker, $id_lowongan) {
+function isJobFavorited($id_pencaker, $id_lowongan)
+{
     $result = supabaseQuery('favorit_lowongan', [
         'select' => 'id_favorit',
         'id_pencaker' => 'eq.' . $id_pencaker,
         'id_lowongan' => 'eq.' . $id_lowongan
     ]);
-    
+
     return $result['success'] && !empty($result['data']);
 }
+
+// Fungsi untuk mendapatkan pelamar dengan status selesai (diterima + ditolak)
+function getPelamarSelesai($id_perusahaan, $limit = 100) {
+    // Ambil semua lowongan perusahaan
+    $lowongan = supabaseQuery('lowongan', [
+        'select' => 'id_lowongan, judul',
+        'id_perusahaan' => 'eq.' . $id_perusahaan
+    ]);
+
+    if (!$lowongan['success']) {
+        return ['success' => false, 'data' => []];
+    }
+
+    $id_lowongan_array = array_column($lowongan['data'], 'id_lowongan');
+    $lowongan_dict = [];
+    foreach ($lowongan['data'] as $low) {
+        $lowongan_dict[$low['id_lowongan']] = $low['judul'];
+    }
+
+    if (empty($id_lowongan_array)) {
+        return ['success' => true, 'data' => []];
+    }
+
+    // Query untuk status diterima dan ditolak
+    $params = [
+        'select' => '*, pencaker(nama_lengkap, email_pencaker, no_hp), lowongan(judul)',
+        'id_lowongan' => 'in.(' . implode(',', $id_lowongan_array) . ')',
+        'status' => 'in.(diterima,ditolak)', // Query IN untuk dua status
+        'order' => 'dibuat_pada.desc',
+        'limit' => $limit
+    ];
+
+    $result = supabaseQuery('lamaran', $params);
+
+    // Format data untuk konsistensi
+    if ($result['success'] && isset($result['data'])) {
+        foreach ($result['data'] as &$lamaran) {
+            $lamaran['judul_lowongan'] = $lamaran['lowongan']['judul'] ?? '';
+            $lamaran['nama_pelamar'] = $lamaran['pencaker']['nama_lengkap'] ?? '';
+            $lamaran['email_pelamar'] = $lamaran['pencaker']['email_pencaker'] ?? '';
+            $lamaran['no_hp_pelamar'] = $lamaran['pencaker']['no_hp'] ?? '';
+            $lamaran['tanggal_lamaran'] = $lamaran['dibuat_pada'] ?? '';
+            $lamaran['catatan_pelamar'] = $lamaran['catatan'] ?? '';
+            $lamaran['cv_url'] = $lamaran['cv_url'] ?? '';
+            $lamaran['pendidikan'] = '';
+            $lamaran['pengalaman'] = '';
+            $lamaran['keahlian'] = '';
+        }
+    }
+
+    return $result;
+}
+

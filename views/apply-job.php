@@ -30,6 +30,18 @@ if (!$result['success']) {
 $lowongan = $result['data'];
 $data = formatLowongan($lowongan);
 
+// Ambil data perusahaan
+$perusahaanResult = supabaseQuery('perusahaan', [
+    'select' => 'nama_perusahaan, logo_url',
+    'id_perusahaan' => 'eq.' . $lowongan['id_perusahaan'],
+    'limit' => 1
+]);
+
+$perusahaan = [];
+if ($perusahaanResult['success'] && count($perusahaanResult['data']) > 0) {
+    $perusahaan = $perusahaanResult['data'][0];
+}
+
 // Ambil data pencaker
 $pencaker = getPencakerByUserId($user_id);
 
@@ -42,7 +54,7 @@ if ($pencaker) {
         'id_pencaker' => 'eq.' . $pencaker['id_pencaker']
     ]);
     $alreadyApplied = $checkApply['success'] && count($checkApply['data']) > 0;
-    
+
     // CEK CV DARI TABLE CV (bukan dari pencaker)
     $checkCV = supabaseQuery('cv', [
         'select' => 'id_cv, cv_url',
@@ -71,38 +83,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$alreadyApplied && $hasCV) {
     } elseif (strlen($catatan_pelamar) > 1000) {
         $error_message = 'Catatan maksimal 1000 karakter.';
     } else {
-        // Ambil CV URL dari table cv (bukan dari pencaker)
+        // Langsung gunakan CV dari profil
         $cv_url = $cvData['cv_url'] ?? '';
-        $use_profile_cv = $_POST['use_profile_cv'] ?? 'yes';
 
-        if ($use_profile_cv === 'no' && isset($_FILES['cv_file']) && $_FILES['cv_file']['error'] === UPLOAD_ERR_OK) {
-            $uploadResult = supabaseStorageUpload('cv', 'cv_' . $user_id . '_' . time() . '.pdf', $_FILES['cv_file']);
-            if ($uploadResult['success']) {
-                $cv_url = getStoragePublicUrl('cv', 'cv_' . $user_id . '_' . time() . '.pdf');
-            } else {
-                $error_message = 'Gagal upload CV. Silakan coba lagi.';
-            }
-        }
-
-        if (empty($error_message)) {
-            // Simpan lamaran dengan catatan
+        if (empty($cv_url)) {
+            $error_message = 'CV tidak ditemukan. Silakan perbarui CV di profil.';
+        } else {
+            // PERBAIKAN: Sesuaikan dengan struktur tabel lamaran yang benar
             $lamaranData = [
                 'id_lowongan' => $id_lowongan,
                 'id_pencaker' => $pencaker['id_pencaker'],
                 'cv_url' => $cv_url,
-                'catatan_pelamar' => $catatan_pelamar,
-                'status' => 'diproses',
-                'tanggal_lamaran' => date('Y-m-d H:i:s')
+                'catatan' => $catatan_pelamar, // PERBAIKAN: 'catatan' bukan 'catatan_pelamar'
+                'status' => 'diproses'
+                // PERBAIKAN: 'dibuat_pada' akan diisi otomatis oleh database (CURRENT_TIMESTAMP)
             ];
 
             $resultApply = supabaseInsert('lamaran', $lamaranData);
 
             if ($resultApply['success']) {
                 $_SESSION['success_message'] = 'Lamaran berhasil dikirim! Perusahaan akan melihat catatan Anda.';
-                header('Location: profile.php');
+                header('Location: aktivitas.php');
                 exit;
             } else {
-                $error_message = 'Gagal mengirim lamaran. Silakan coba lagi.';
+                // Tampilkan error detail untuk debugging
+                $error_message = 'Gagal mengirim lamaran. Error: ' . ($resultApply['error'] ?? 'Unknown error');
+                error_log('Apply Job Error: ' . print_r($resultApply, true));
             }
         }
     }
@@ -133,18 +139,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$alreadyApplied && $hasCV) {
     <link href="../assets/css/style.css" rel="stylesheet">
 
     <style>
+        body {
+            background-color: #ffffff;
+        }
+
         .apply-container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 40px auto;
             padding: 0 20px;
         }
 
         .job-header {
-            background: linear-gradient(135deg, #001f66, #003399);
-            color: white;
+            background: linear-gradient(to right, #224BA4 0%, #ffffff 100%);
             padding: 30px;
             border-radius: 15px;
             margin-bottom: 30px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
+            height: 200px;
+            color: white !important;
+        }
+
+        .job-header h1,
+        .job-header p,
+        .job-header i,
+        .job-header h3,
+        .job-header .fs-6 {
+            color: white !important;
         }
 
         .apply-card {
@@ -153,6 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$alreadyApplied && $hasCV) {
             box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
             padding: 30px;
             margin-bottom: 30px;
+            border: 1px blue;
         }
 
         .form-label {
@@ -197,6 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$alreadyApplied && $hasCV) {
         .char-count.warning {
             color: #dc3545;
         }
+
         /* Perbaikan alignment dropdown user */
         .auth-buttons {
             display: flex;
@@ -269,7 +291,123 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$alreadyApplied && $hasCV) {
         }
 
         .job-header .h2 {
-            color: white !important;
+            color: #001f66 !important;
+        }
+
+        .salary-badge {
+            background-color: #001f66;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        /* Tambahkan di bagian style dalam head */
+        .badge {
+            padding: 6px 12px;
+            font-weight: 500;
+            border-radius: 20px;
+        }
+
+        /* Tambahkan di bagian style dalam head */
+        .badge.bg-primary {
+            padding: 5px 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .text-truncate {
+            white-space: nowrap;
+        }
+
+        /* Untuk responsif pada mobile */
+        @media (max-width: 768px) {
+            .d-flex.align-items-center {
+                flex-wrap: wrap;
+            }
+
+            .text-truncate {
+                margin-bottom: 5px;
+            }
+
+            .d-flex.align-items-center.mb-3 {
+                margin-bottom: 10px !important;
+            }
+        }
+
+        .fs-6 {
+            font-size: 0.9rem !important;
+        }
+
+        /* Responsif untuk mobile */
+        @media (max-width: 768px) {
+            .d-flex.align-items-center.mb-3 {
+                flex-wrap: wrap;
+            }
+
+            .ms-auto.text-primary.fs-6 {
+                margin-left: 0 !important;
+                margin-top: 8px;
+                width: 100%;
+            }
+
+            .d-flex.align-items-center {
+                flex-wrap: wrap;
+            }
+
+            .ms-auto {
+                margin-left: 0 !important;
+                margin-top: 8px;
+            }
+        }
+
+        /* Styling untuk modal konfirmasi */
+        .modal-content {
+            border-radius: 15px;
+            border: 2px solid #001f66;
+        }
+
+        .modal-header.bg-primary {
+            border-radius: 13px 13px 0 0;
+            background:  linear-gradient(to right, #224BA4 0%, #ffffff 100%);;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .btn-close-white {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+
+        /* Tombol konfirmasi */
+        #btnSubmitConfirm {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            border: none;
+            padding: 10px 25px;
+            font-weight: 600;
+        }
+
+        #btnSubmitConfirm:hover {
+            background: linear-gradient(135deg, #218838, #1e9e8a);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+
+        /* Tombol konfirmasi utama */
+        #btnConfirmApply {
+            transition: all 0.3s ease;
+        }
+
+        #btnConfirmApply:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 31, 102, 0.3);
+        }
+
+        .modal-title {
+            color: white;
         }
     </style>
 </head>
@@ -327,23 +465,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$alreadyApplied && $hasCV) {
             </div>
         </div>
     </nav>
-    <!-- Navbar End -->
-
+    <a href="job-detail.php?id=<?= $id_lowongan ?>" class="text-primary position-absolute" style="top: 100px; left: 30px; background: white; padding: 5px 15px; font-size: 1rem; border-radius: 5px; text-decoration: none; z-index: 10;">
+        <i class="fas fa-arrow-left me-1"></i> Kembali
+    </a>
     <div class="apply-container">
         <!-- Job Header -->
         <div class="job-header">
-            <div class="d-flex align-items-center">
-                <?php if (!empty($data['perusahaan']['logo'])): ?>
-                    <img src="<?= htmlspecialchars($data['perusahaan']['logo']) ?>" alt="Logo Perusahaan" class="company-logo">
+            <div class="d-flex align-items-center mb-5">
+                <?php if (!empty($perusahaan['logo_url'])): ?>
+                    <img class="flex-shrink-0 img-fluid border rounded company-logo" src="<?= htmlspecialchars($perusahaan['logo_url']) ?>" alt="<?= htmlspecialchars($perusahaan['nama_perusahaan'] ?? 'Company Logo') ?>">
+                <?php else: ?>
+                    <img class="flex-shrink-0 img-fluid border rounded company-logo" src="../assets/img/com-logo-2.jpg" alt="Default Company Logo">
                 <?php endif; ?>
-                <div>
-                    <h1 class="h2 mb-2"><?= htmlspecialchars($data['judul']) ?></h1>
-                    <p class="mb-1">
-                        <i class="fas fa-building me-2"></i><?= htmlspecialchars($data['perusahaan']['nama']) ?>
-                    </p>
-                    <p class="mb-0">
-                        <i class="fas fa-map-marker-alt me-2"></i><?= htmlspecialchars($data['lokasi']) ?>
-                    </p>
+                <div class="text-start ps-4 w-100">
+                    <h3 class="mb-2"><?= htmlspecialchars($data['judul']) ?></h3>
+
+                    <!-- Nama Perusahaan -->
+                    <h5 class="text-muted mb-2"><?= htmlspecialchars($perusahaan['nama_perusahaan'] ?? '') ?></h5>
+
+                    <!-- Baris Kategori dan Gaji (sejajar) -->
+                    <div class="d-flex align-items-center mb-3">
+                        <!-- Badge Kategori -->
+                        <span class="badge bg-primary me-3"><?= htmlspecialchars($data['kategori']) ?></span>
+                        <!-- Gaji di sebelah kanan badge -->
+                        <span class="text-primary fs-6 fw-bold">
+                            <?= htmlspecialchars($data['gaji']) ?></span>
+                    </div>
+
+                    <!-- Baris Lokasi dan Tanggal (sejajar) -->
+                    <div class="d-flex align-items-center mb-2">
+                        <!-- Lokasi -->
+                        <span class="text-truncate me-4">
+                            <i class="fa fa-map-marker-alt text-primary me-2"></i>
+                            <?= htmlspecialchars($data['lokasi']) ?>
+                        </span>
+                        <!-- Tanggal Dibuat -->
+                        <span class="text-muted fs-6">
+                            <i class="far fa-calendar-alt me-2"></i>
+                            <?= htmlspecialchars(date('d M Y', strtotime($data['dibuat_pada']))) ?>
+                        </span>
+                    </div>
+
+                    <!-- Baris Tipe Pekerjaan dan Mode Kerja -->
+                    <div class="d-flex align-items-center">
+                        <!-- Tipe Pekerjaan -->
+                        <span class="text-truncate me-4">
+                            <i class="far fa-clock text-primary me-2"></i>
+                            <?= htmlspecialchars(formatTipePekerjaan($data['tipe_pekerjaan'])) ?>
+                        </span>
+                        <!-- Mode Kerja -->
+                        <span class="text-truncate">
+                            <i class="fas fa-laptop-house text-primary me-2"></i>
+                            <?= htmlspecialchars($data['mode_kerja']) ?>
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -360,14 +535,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$alreadyApplied && $hasCV) {
             </div>
         <?php else: ?>
             <!-- Form Apply -->
-            <div class="apply-card">
+            <div class="apply-card border border-primary" style="border-width: 2px !important;">
                 <h3 class="mb-4" style="color: #001f66;">Kirim Lamaran</h3>
 
                 <?php if (isset($error_message)): ?>
-                    <div class="alert alert-danger"><?= htmlspecialchars($error_message) ?></div>
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <?= htmlspecialchars($error_message) ?>
+                    </div>
                 <?php endif; ?>
 
-                <form method="POST" enctype="multipart/form-data">
+                <form method="POST" enctype="multipart/form-data" id="applyForm">
                     <!-- Data Pribadi -->
                     <div class="mb-4">
                         <h5 class="mb-3" style="color: #001f66;">Data Pribadi</h5>
@@ -388,36 +566,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$alreadyApplied && $hasCV) {
                                 <label class="form-label">Pengalaman</label>
                                 <input type="text" class="form-control" value="<?= htmlspecialchars($pencaker['pengalaman_tahun'] ?? '0') ?> Tahun" readonly>
                             </div>
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Gaji yang Diharapkan</label>
+                                <input type="text" class="form-control" value="Rp. <?= htmlspecialchars($data['gaji']) ?> juta/bulan" readonly>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- CV -->
                     <div class="mb-4">
                         <h5 class="mb-3" style="color: #001f66;">Curriculum Vitae (CV)</h5>
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="use_profile_cv" id="use_profile_cv_yes" value="yes" <?= !empty($cvData['cv_url']) ? 'checked' : '' ?>>
-                                <label class="form-check-label" for="use_profile_cv_yes">
-                                    Gunakan CV dari Profil
+                        <div class="alert alert-info">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-file-pdf fa-2x text-primary"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">CV yang akan digunakan:</h6>
+                                    <p class="mb-1">CV dari profil Anda akan digunakan untuk melamar pekerjaan ini.</p>
                                     <?php if (!empty($cvData['cv_url'])): ?>
-                                        <span class="text-success">(CV tersedia)</span>
+                                        <a href="<?= htmlspecialchars($cvData['cv_url']) ?>" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
+                                            <i class="fas fa-eye me-1"></i> Lihat CV
+                                        </a>
                                     <?php else: ?>
-                                        <span class="text-danger">(Belum ada CV di profil)</span>
+                                        <span class="text-danger">CV tidak tersedia di profil</span>
                                     <?php endif; ?>
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="use_profile_cv" id="use_profile_cv_no" value="no" <?= empty($cvData['cv_url']) ? 'checked' : '' ?>>
-                                <label class="form-check-label" for="use_profile_cv_no">
-                                    Upload CV Baru
-                                </label>
+                                </div>
                             </div>
                         </div>
-
-                        <div id="cv_upload_section" style="<?= empty($cvData['cv_url']) ? 'display: block;' : 'display: none;' ?>">
-                            <label class="form-label">Upload CV Baru (PDF, Max 5MB)</label>
-                            <input type="file" class="form-control" name="cv_file" accept=".pdf,.doc,.docx" <?= empty($cvData['cv_url']) ? 'required' : '' ?>>
-                            <small class="text-muted">Format: PDF, DOC, DOCX. Maksimal 5MB.</small>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Untuk mengubah CV, silakan perbarui CV di halaman profil Anda.
+                            </small>
                         </div>
                     </div>
 
@@ -446,12 +626,53 @@ Saya yakin dapat berkontribusi dengan kemampuan...
 
                     <!-- Submit Button -->
                     <div class="text-center">
-                        <button type="submit" class="btn-apply btn-lg">
+                        <button type="button" class="btn-apply btn-lg" id="btnConfirmApply">
                             <i class="fas fa-paper-plane me-2"></i>Kirim Lamaran
                         </button>
-                        <a href="job-detail.php?id=<?= $id_lowongan ?>" class="btn btn-outline-secondary btn-lg ms-2">
-                            <i class="fas fa-arrow-left me-2"></i>Kembali
-                        </a>
+                    </div>
+
+                    <!-- Modal Konfirmasi -->
+                    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header bg-primary text-white">
+                                    <h5 class="modal-title" id="confirmModalLabel">
+                                        <i class="fas fa-paper-plane me-2"></i>Konfirmasi Pengiriman Lamaran
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="text-center mb-4">
+                                        <div class="mb-3">
+                                            <i class="fas fa-question-circle fa-4x text-primary"></i>
+                                        </div>
+                                        <h5 class="mb-3">Apakah Anda yakin ingin mengirim lamaran?</h5>
+                                        <p class="text-muted">
+                                            Lamaran Anda akan dikirim ke perusahaan dan tidak dapat dibatalkan.
+                                            Pastikan data dan catatan Anda sudah benar.
+                                        </p>
+
+                                        <div class="alert alert-info text-start">
+                                            <h6><i class="fas fa-info-circle me-2"></i>Detail Lamaran:</h6>
+                                            <ul class="mb-0">
+                                                <li><strong>Posisi:</strong> <?= htmlspecialchars($data['judul']) ?></li>
+                                                <li><strong>Perusahaan:</strong> <?= htmlspecialchars($perusahaan['nama_perusahaan'] ?? '') ?></li>
+                                                <li><strong>CV:</strong> Akan menggunakan CV dari profil Anda</li>
+                                                <li><strong>Status:</strong> Akan diproses oleh perusahaan</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                        <i class="fas fa-times me-2"></i>Batal
+                                    </button>
+                                    <button type="submit" class="btn btn-primary" id="btnSubmitConfirm">
+                                        <i class="fas fa-paper-plane me-2"></i>Ya, Kirim Lamaran
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -463,43 +684,69 @@ Saya yakin dapat berkontribusi dengan kemampuan...
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Toggle CV upload section
-        document.querySelectorAll('input[name="use_profile_cv"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                const uploadSection = document.getElementById('cv_upload_section');
-                const fileInput = uploadSection.querySelector('input[type="file"]');
-
-                if (this.value === 'no') {
-                    uploadSection.style.display = 'block';
-                    fileInput.setAttribute('required', 'required');
-                } else {
-                    uploadSection.style.display = 'none';
-                    fileInput.removeAttribute('required');
-                }
-            });
-        });
-
         // Character counter for catatan
         const catatanTextarea = document.getElementById('catatan_pelamar');
         const charCount = document.getElementById('char_count');
 
-        catatanTextarea.addEventListener('input', function() {
-            const length = this.value.length;
-            charCount.textContent = `${length}/1000 karakter`;
+        if (catatanTextarea) {
+            catatanTextarea.addEventListener('input', function() {
+                const length = this.value.length;
+                charCount.textContent = `${length}/1000 karakter`;
 
-            if (length > 900) {
-                charCount.classList.add('warning');
-            } else {
-                charCount.classList.remove('warning');
-            }
-        });
+                if (length > 900) {
+                    charCount.classList.add('warning');
+                } else {
+                    charCount.classList.remove('warning');
+                }
+            });
 
-        // Trigger initial count
-        catatanTextarea.dispatchEvent(new Event('input'));
+            // Trigger initial count
+            catatanTextarea.dispatchEvent(new Event('input'));
+        }
 
-        // Validasi form
-        document.querySelector('form').addEventListener('submit', function(e) {
+        // Konfirmasi sebelum submit
+        const btnConfirmApply = document.getElementById('btnConfirmApply');
+        const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+        const btnSubmitConfirm = document.getElementById('btnSubmitConfirm');
+        const applyForm = document.getElementById('applyForm');
+
+        if (btnConfirmApply && confirmModal && btnSubmitConfirm && applyForm) {
+            // Tampilkan modal konfirmasi saat tombol kirim diklik
+            btnConfirmApply.addEventListener('click', function() {
+                // Validasi catatan terlebih dahulu
+                const catatan = document.getElementById('catatan_pelamar');
+
+                if (catatan.value.trim().length === 0) {
+                    alert('Silakan tulis catatan untuk perusahaan');
+                    catatan.focus();
+                    return;
+                }
+
+                if (catatan.value.length > 1000) {
+                    alert('Catatan maksimal 1000 karakter');
+                    return;
+                }
+
+                // Tampilkan modal konfirmasi
+                confirmModal.show();
+            });
+
+            // Submit form saat tombol konfirmasi di modal diklik
+            btnSubmitConfirm.addEventListener('click', function() {
+                // Tambahkan loading state
+                const originalText = btnSubmitConfirm.innerHTML;
+                btnSubmitConfirm.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Mengirim...';
+                btnSubmitConfirm.disabled = true;
+
+                // Submit form
+                applyForm.submit();
+            });
+        }
+
+        // Validasi form saat submit langsung (untuk keamanan tambahan)
+        applyForm.addEventListener('submit', function(e) {
             const catatan = document.getElementById('catatan_pelamar');
+
             if (catatan.value.trim().length === 0) {
                 e.preventDefault();
                 alert('Silakan tulis catatan untuk perusahaan');
@@ -513,23 +760,11 @@ Saya yakin dapat berkontribusi dengan kemampuan...
                 return;
             }
 
-            const useProfileCv = document.querySelector('input[name="use_profile_cv"]:checked').value;
-            if (useProfileCv === 'no') {
-                const fileInput = document.querySelector('input[type="file"]');
-                if (fileInput.files.length === 0) {
-                    e.preventDefault();
-                    alert('Silakan pilih file CV');
-                    return;
-                }
-
-                const file = fileInput.files[0];
-                const fileSize = file.size / 1024 / 1024; // MB
-
-                if (fileSize > 5) {
-                    e.preventDefault();
-                    alert('Ukuran file maksimal 5MB');
-                    return;
-                }
+            // Optional: Tampilkan loading di tombol utama juga
+            const mainSubmitBtn = document.querySelector('button[type="submit"]');
+            if (mainSubmitBtn) {
+                mainSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Mengirim...';
+                mainSubmitBtn.disabled = true;
             }
         });
     </script>

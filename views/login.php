@@ -241,8 +241,6 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
                     <a href="job-list.php" class="nav-item nav-link">Cari Pekerjaan</a>
                 </div>
                 <div class="auth-buttons d-flex align-items-center">
-                    <a href="register.php" class="btn-register">Register</a>
-                    <a href="login.php" class="btn-login">Login</a>
                 </div>
             </div>
         </div>
@@ -269,7 +267,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
                     <!-- Link Login Perusahaan dan Lupa Password -->
                     <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
                         <div>
-                            <a href="../company/login.php" style="color: #001f66; text-decoration: none; font-size: 14px;">
+                            <a href="company/login.php" style="color: #001f66; text-decoration: none; font-size: 14px;">
                                 Login Perusahaan
                             </a>
                         </div>

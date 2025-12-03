@@ -25,22 +25,27 @@ $company = supabaseQuery('perusahaan', [
     'id_pengguna' => 'eq.' . $user_id
 ]);
 
+
+
+// Jika tidak ada data perusahaan, redirect ke edit_company
+if (count($company['data']) === 0) {
+    exit;
+}
+
+
+
+// Ambil data perusahaan untuk ditampilkan
+$companyData = $company['data'][0];
+$id_perusahaan = $companyData['id_perusahaan'] ?? null;
+$nama_perusahaan = $companyData['nama_perusahaan'] ?? 'Perusahaan';
+$logo_url = $companyData['logo_url'] ?? '';
+$status_persetujuan = $companyData['status_persetujuan'] ?? null;
+
 // Jika status menunggu, redirect ke waiting_approval
-if ($company['success'] && count($company['data']) > 0 && $company['data'][0]['status_persetujuan'] === 'menunggu') {
+if ($status_persetujuan === 'menunggu') {
     header('Location: waiting_approval.php');
     exit;
 }
-
-// Jika belum ada data perusahaan, redirect ke edit_company
-if ($company['success'] && count($company['data']) === 0) {
-    header('Location: edit_company.php');
-    exit;
-}
-
-// Ambil data perusahaan untuk ditampilkan
-$id_perusahaan = $company['data'][0]['id_perusahaan'] ?? null;
-$nama_perusahaan = $company['data'][0]['nama_perusahaan'] ?? 'Perusahaan';
-$logo_url = $company['data'][0]['logo_url'] ?? '';
 
 // Jika tidak ada id_perusahaan, redirect ke edit_company
 if (!$id_perusahaan) {
@@ -52,24 +57,67 @@ if (!$id_perusahaan) {
 $status = $_GET['status'] ?? 'diproses';
 
 // Validasi status
-$validStatuses = ['diproses', 'diterima', 'ditolak'];
+$validStatuses = ['diproses', 'diterima', 'ditolak', 'selesai'];
 if (!in_array($status, $validStatuses)) {
     $status = 'diproses';
 }
 
-// Hitung jumlah pelamar per status
-$counts = [];
-foreach ($validStatuses as $s) {
-    $result = getJumlahPelamarByStatus($id_perusahaan, $s);
-    $counts[$s] = $result;
+// Cek dulu apakah ada lowongan untuk perusahaan ini
+$lowonganCheck = supabaseQuery('lowongan', [
+    'select' => 'id_lowongan, judul, status',
+    'id_perusahaan' => 'eq.' . $id_perusahaan
+]);
+
+if ($lowonganCheck['success'] && count($lowonganCheck['data']) > 0) {
+
+    // Hitung jumlah pelamar per status
+    $counts = [];
+    foreach (['diproses', 'diterima', 'ditolak'] as $s) {
+        $result = getJumlahPelamarByStatus($id_perusahaan, $s);
+        $counts[$s] = $result;
+    }
+    $counts['selesai'] = $counts['diterima'] + $counts['ditolak'];
+} else {
+    $counts = ['diproses' => 0, 'diterima' => 0, 'ditolak' => 0, 'selesai' => 0];
 }
 
 // Ambil data pelamar berdasarkan status
-$pelamarResult = getPelamarByStatus($id_perusahaan, $status, 50);
-$allApplicants = $pelamarResult['success'] ? $pelamarResult['data'] : [];
+if ($status === 'selesai') {
+    // Hitung tanggal 7 hari yang lalu
+    $sevenDaysAgo = date('Y-m-d', strtotime('-7 days'));
 
-// Data untuk JSON
-$pelamarDataJson = json_encode($allApplicants);
+    // Query untuk mendapatkan pelamar dengan status diterima/ditolak dalam 7 hari terakhir
+    $pelamarResult = getPelamarByStatus($id_perusahaan, null, 100);
+
+    // Filter manual untuk diterima, ditolak, dan dalam 7 hari terakhir
+    if ($pelamarResult['success'] && isset($pelamarResult['data'])) {
+        $allApplicants = array_filter($pelamarResult['data'], function ($applicant) use ($sevenDaysAgo) {
+            $isCompleted = in_array($applicant['status'] ?? '', ['diterima', 'ditolak']);
+            $isWithin7Days = false;
+
+            // Cek jika tanggal lamaran dalam 7 hari terakhir
+            if (isset($applicant['tanggal_lamaran']) && $applicant['tanggal_lamaran']) {
+                $applyDate = date('Y-m-d', strtotime($applicant['tanggal_lamaran']));
+                $isWithin7Days = ($applyDate >= $sevenDaysAgo);
+            }
+
+            return $isCompleted && $isWithin7Days;
+        });
+
+        // Reset array keys
+        $allApplicants = array_values($allApplicants);
+    } else {
+        $allApplicants = [];
+    }
+} else {
+    $pelamarResult = getPelamarByStatus($id_perusahaan, $status, 100);
+
+    if ($pelamarResult['success'] && isset($pelamarResult['data'])) {
+        $allApplicants = $pelamarResult['data'];
+    } else {
+        $allApplicants = [];
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -466,6 +514,9 @@ $pelamarDataJson = json_encode($allApplicants);
                     <span class="text-tab <?php echo $status === 'ditolak' ? 'active' : ''; ?>" onclick="changeStatus('ditolak')">
                         Ditolak <span class="text-tab-count"><?php echo $counts['ditolak']; ?></span>
                     </span>
+                    <span class="text-tab <?php echo $status === 'selesai' ? 'active' : ''; ?>" onclick="changeStatus('selesai')">
+                        Selesai <span class="text-tab-count"><?php echo $counts['selesai']; ?></span>
+                    </span>
                 </div>
 
                 <!-- Filters -->
@@ -529,11 +580,15 @@ $pelamarDataJson = json_encode($allApplicants);
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Data dari PHP
-        const applicantData = <?php echo $pelamarDataJson; ?>;
+        // Data dari PHP - PASTIKAN menggunakan json_encode dengan JSON_HEX_TAG
+        const applicantData = <?php echo json_encode($allApplicants, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?> || [];
         let currentStatus = '<?php echo $status; ?>';
         let filteredData = applicantData;
         let currentApplicantId = null;
+
+        console.log("Applicant Data:", applicantData); // Debug di console browser
+        console.log("Current Status:", currentStatus);
+        console.log("Data length:", applicantData.length);
 
         // Fungsi untuk change status
         function changeStatus(status) {
@@ -549,10 +604,12 @@ $pelamarDataJson = json_encode($allApplicants);
 
             // Apply search filter
             if (searchTerm) {
-                data = data.filter(item =>
-                    (item.nama_pelamar && item.nama_pelamar.toLowerCase().includes(searchTerm)) ||
-                    (item.judul_lowongan && item.judul_lowongan.toLowerCase().includes(searchTerm))
-                );
+                data = data.filter(item => {
+                    const nama = item.nama_pelamar || '';
+                    const judul = item.judul_lowongan || '';
+                    return nama.toLowerCase().includes(searchTerm) ||
+                        judul.toLowerCase().includes(searchTerm);
+                });
             }
 
             // Apply date range filter
@@ -576,292 +633,114 @@ $pelamarDataJson = json_encode($allApplicants);
         function renderApplicants() {
             const applicantsContent = document.getElementById('applicantsContent');
 
-            if (filteredData.length === 0) {
+            console.log("Rendering applicants...");
+            console.log("Filtered data:", filteredData);
+
+            if (!applicantsContent) {
+                console.error('Element dengan id "applicantsContent" tidak ditemukan');
+                return;
+            }
+
+            if (!filteredData || filteredData.length === 0) {
                 applicantsContent.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="text-center py-4">
-                            <div class="empty-state">
-                                <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                                <h3>Tidak ada pelamar</h3>
-                                <p>Tidak ada pelamar dengan status ${currentStatus} untuk saat ini</p>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+                <tr>
+                    <td colspan="7" class="text-center py-4">
+                        <div class="empty-state">
+                            <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <h3>Tidak ada pelamar</h3>
+                            <p>Tidak ada pelamar dengan status ${currentStatus} untuk saat ini</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
                 return;
             }
 
             let html = '';
 
             filteredData.forEach(applicant => {
-                const applyDate = new Date(applicant.tanggal_lamaran).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                });
+                // Format tanggal
+                let applyDate = 'Tanggal tidak tersedia';
+                try {
+                    if (applicant.tanggal_lamaran) {
+                        const date = new Date(applicant.tanggal_lamaran);
+                        applyDate = date.toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                        });
+                    }
+                } catch (e) {
+                    console.error("Error formatting date:", e);
+                }
 
+                // Status badge
                 const statusClass = `status-${applicant.status}`;
                 const statusLabel = applicant.status === 'diproses' ? 'Diproses' :
                     applicant.status === 'diterima' ? 'Diterima' : 'Ditolak';
 
+                // Initial untuk avatar
                 const initial = applicant.nama_pelamar ? applicant.nama_pelamar.charAt(0).toUpperCase() : 'P';
 
+                // Escape HTML untuk mencegah XSS
+                const escapeHtml = (unsafe) => {
+                    if (!unsafe) return '';
+                    return unsafe
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
+                };
+
                 html += `
-                    <tr>
-                        <td>
-                            <div class="applicant-name-cell">
-                                <div class="applicant-avatar">
-                                    ${initial}
-                                </div>
-                                <div>
-                                    <div class="applicant-name">${escapeHtml(applicant.nama_pelamar || 'Nama tidak tersedia')}</div>
-                                    <div class="applicant-job">${escapeHtml(applicant.judul_lowongan || 'Lowongan tidak tersedia')}</div>
-                                </div>
+                <tr>
+                    <td>
+                        <div class="applicant-name-cell">
+                            <div class="applicant-avatar">
+                                ${initial}
                             </div>
-                        </td>
-                        <td>${escapeHtml(applicant.judul_lowongan || 'Lowongan tidak tersedia')}</td>
-                        <td>${escapeHtml(applicant.email_pelamar || 'Email tidak tersedia')}</td>
-                        <td>${escapeHtml(applicant.no_hp_pelamar || '-')}</td>
-                        <td>${applyDate}</td>
-                        <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
-                        <td>
-                            <div class="action-buttons">
-                                ${applicant.cv_url ? `
-                                    <a href="${escapeHtml(applicant.cv_url)}" target="_blank" class="btn-cv">
-                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        CV
-                                    </a>
-                                ` : ''}
-                                <button class="btn-detail" onclick="viewApplicantDetail(${applicant.id_lamaran})">
+                            <div>
+                                <div class="applicant-name">${escapeHtml(applicant.nama_pelamar || 'Nama tidak tersedia')}</div>
+                                <div class="applicant-job">${escapeHtml(applicant.judul_lowongan || 'Lowongan tidak tersedia')}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${escapeHtml(applicant.judul_lowongan || 'Lowongan tidak tersedia')}</td>
+                    <td>${escapeHtml(applicant.email_pelamar || 'Email tidak tersedia')}</td>
+                    <td>${escapeHtml(applicant.no_hp_pelamar || '-')}</td>
+                    <td>${applyDate}</td>
+                    <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            ${applicant.cv_url ? `
+                                <a href="${escapeHtml(applicant.cv_url)}" target="_blank" class="btn-cv">
                                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
-                                    Detail
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+                                    CV
+                                </a>
+                            ` : ''}
+                            <button class="btn-detail" onclick="viewApplicantDetail(${applicant.id_lamaran})">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                Detail
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
             });
 
             applicantsContent.innerHTML = html;
+            console.log("Table rendered with", filteredData.length, "rows");
         }
 
-        // Fungsi untuk menampilkan detail pelamar
-        function viewApplicantDetail(applicantId) {
-            const applicant = applicantData.find(a => a.id_lamaran === applicantId);
-            if (!applicant) {
-                alert('Data pelamar tidak ditemukan');
-                return;
-            }
-
-            currentApplicantId = applicantId;
-
-            const applyDate = new Date(applicant.tanggal_lamaran).toLocaleDateString('id-ID', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            });
-
-            const statusClass = `status-${applicant.status}`;
-            const statusLabel = applicant.status === 'diproses' ? 'Diproses' :
-                applicant.status === 'diterima' ? 'Diterima' : 'Ditolak';
-
-            const initial = applicant.nama_pelamar ? applicant.nama_pelamar.charAt(0).toUpperCase() : 'P';
-
-            // Buat modal detail
-            const modalHtml = `
-                <div style="padding: 20px;">
-                    <div style="margin-bottom: 20px;">
-                        <div class="applicant-info-cell" style="margin-bottom: 16px; display: flex; align-items: center; gap: 16px;">
-                            <div class="applicant-avatar" style="width: 60px; height: 60px; font-size: 24px; background: #002E92; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                ${initial}
-                            </div>
-                            <div class="applicant-details">
-                                <div class="applicant-name" style="font-size: 18px; margin-bottom: 4px; font-weight: 600; color: #111827;">${escapeHtml(applicant.nama_pelamar || 'Nama tidak tersedia')}</div>
-                                <div class="applicant-email" style="color: #6b7280;">${escapeHtml(applicant.email_pelamar || 'Email tidak tersedia')}</div>
-                                ${applicant.no_hp_pelamar ? `<div class="applicant-email" style="color: #6b7280;">${escapeHtml(applicant.no_hp_pelamar)}</div>` : ''}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="border-top: 1px solid #e5e7eb; padding-top: 20px;">
-                        <!-- Catatan dari Pelamar -->
-                        ${applicant.catatan_pelamar ? `
-                            <div style="margin-bottom: 20px;">
-                                <strong style="color: #374151; display: block; margin-bottom: 8px; font-size: 16px;">
-                                    <i class="fas fa-sticky-note me-2"></i>Catatan dari Pelamar:
-                                </strong>
-                                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #001f66;">
-                                    <p style="color: #4b5563; margin: 0; white-space: pre-wrap; line-height: 1.6;">${escapeHtml(applicant.catatan_pelamar)}</p>
-                                </div>
-                            </div>
-                        ` : ''}
-
-                        <div style="margin-bottom: 16px;">
-                            <strong style="color: #374151; display: block; margin-bottom: 8px;">Lowongan yang Dilamar:</strong>
-                            <p style="color: #6b7280; margin: 0;">${escapeHtml(applicant.judul_lowongan || 'Lowongan tidak tersedia')}</p>
-                        </div>
-
-                        <div style="margin-bottom: 16px;">
-                            <strong style="color: #374151; display: block; margin-bottom: 8px;">Tanggal Melamar:</strong>
-                            <p style="color: #6b7280; margin: 0;">${applyDate}</p>
-                        </div>
-
-                        <div style="margin-bottom: 16px;">
-                            <strong style="color: #374151; display: block; margin-bottom: 8px;">Status:</strong>
-                            <span class="status-badge ${statusClass}">${statusLabel}</span>
-                        </div>
-
-                        ${applicant.pendidikan ? `
-                            <div style="margin-bottom: 16px;">
-                                <strong style="color: #374151; display: block; margin-bottom: 8px;">Pendidikan:</strong>
-                                <p style="color: #6b7280; margin: 0; white-space: pre-wrap;">${escapeHtml(applicant.pendidikan)}</p>
-                            </div>
-                        ` : ''}
-
-                        ${applicant.pengalaman ? `
-                            <div style="margin-bottom: 16px;">
-                                <strong style="color: #374151; display: block; margin-bottom: 8px;">Pengalaman Kerja:</strong>
-                                <p style="color: #6b7280; margin: 0; white-space: pre-wrap;">${escapeHtml(applicant.pengalaman)}</p>
-                            </div>
-                        ` : ''}
-
-                        ${applicant.keahlian ? `
-                            <div style="margin-bottom: 16px;">
-                                <strong style="color: #374151; display: block; margin-bottom: 8px;">Keahlian:</strong>
-                                <p style="color: #6b7280; margin: 0; white-space: pre-wrap;">${escapeHtml(applicant.keahlian)}</p>
-                            </div>
-                        ` : ''}
-
-                        ${applicant.cv_url ? `
-                            <div style="margin-bottom: 16px;">
-                                <a href="${escapeHtml(applicant.cv_url)}" target="_blank" class="btn-cv" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; background: #10b981; color: white; padding: 8px 16px; border-radius: 6px; font-size: 14px;">
-                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    Download CV
-                                </a>
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-
-            // Buat footer modal dengan tombol aksi
-            let footerHtml = '';
-            if (applicant.status === 'diproses') {
-                footerHtml = `
-                    <button type="button" class="btn-success" onclick="updateApplicantStatus('diterima')">
-                        <i class="fas fa-check me-2"></i>Diterima
-                    </button>
-                    <button type="button" class="btn-danger" onclick="updateApplicantStatus('ditolak')">
-                        <i class="fas fa-times me-2"></i>Ditolak
-                    </button>
-                    <button type="button" class="btn-secondary" onclick="closeApplicantModal()">Tutup</button>
-                `;
-            } else {
-                footerHtml = `
-                    <button type="button" class="btn-secondary" onclick="closeApplicantModal()">Tutup</button>
-                `;
-            }
-
-            document.getElementById('applicantDetailContent').innerHTML = modalHtml;
-            document.getElementById('modalFooter').innerHTML = footerHtml;
-            document.getElementById('applicantDetailModal').style.display = 'block';
-        }
-
-        // Fungsi untuk update status lamaran - VERSI DIPERBAIKI
-        function updateApplicantStatus(newStatus) {
-            if (!currentApplicantId) {
-                alert('Tidak ada pelamar yang dipilih');
-                return;
-            }
-
-            const confirmMessage = newStatus === 'diterima' ?
-                'Apakah Anda yakin ingin MENERIMA pelamar ini?' :
-                'Apakah Anda yakin ingin MENOLAK pelamar ini?';
-
-            if (!confirm(confirmMessage)) {
-                return;
-            }
-
-            // Tampilkan loading state
-            const buttons = document.querySelectorAll('#modalFooter button');
-            buttons.forEach(btn => {
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
-            });
-
-            // Kirim request ke server untuk update status
-            fetch('update_applicant_status.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        id_lamaran: currentApplicantId,
-                        status: newStatus
-                    })
-                })
-                .then(response => {
-                    console.log('Response status:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Response data:', data);
-                    if (data.success) {
-                        alert('Status pelamar berhasil diupdate!');
-                        closeApplicantModal();
-                        // Refresh halaman untuk menampilkan perubahan
-                        location.reload();
-                    } else {
-                        alert('Gagal mengupdate status: ' + (data.message || 'Terjadi kesalahan'));
-                        // Reset button state
-                        buttons.forEach(btn => {
-                            btn.disabled = false;
-                            if (btn.classList.contains('btn-success')) {
-                                btn.innerHTML = '<i class="fas fa-check me-2"></i>Diterima';
-                            } else if (btn.classList.contains('btn-danger')) {
-                                btn.innerHTML = '<i class="fas fa-times me-2"></i>Ditolak';
-                            } else {
-                                btn.innerHTML = 'Tutup';
-                            }
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Terjadi kesalahan jaringan saat mengupdate status. Periksa console untuk detail.');
-                    // Reset button state
-                    buttons.forEach(btn => {
-                        btn.disabled = false;
-                        if (btn.classList.contains('btn-success')) {
-                            btn.innerHTML = '<i class="fas fa-check me-2"></i>Diterima';
-                        } else if (btn.classList.contains('btn-danger')) {
-                            btn.innerHTML = '<i class="fas fa-times me-2"></i>Ditolak';
-                        } else {
-                            btn.innerHTML = 'Tutup';
-                        }
-                    });
-                });
-        }
-
-        // Fungsi untuk close modal
-        function closeApplicantModal() {
-            document.getElementById('applicantDetailModal').style.display = 'none';
-            currentApplicantId = null;
-        }
-
-        // Fungsi helper untuk escape HTML
+        // Pindahkan fungsi escapeHtml ke global scope
         function escapeHtml(unsafe) {
             if (!unsafe) return '';
             return unsafe
@@ -872,16 +751,9 @@ $pelamarDataJson = json_encode($allApplicants);
                 .replace(/'/g, "&#039;");
         }
 
-        // Close modal saat klik di luar
-        window.addEventListener('click', function(event) {
-            const modal = document.getElementById('applicantDetailModal');
-            if (event.target === modal) {
-                closeApplicantModal();
-            }
-        });
-
         // Initial render
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM Content Loaded");
             renderApplicants();
         });
     </script>

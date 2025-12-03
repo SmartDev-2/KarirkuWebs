@@ -93,7 +93,7 @@ session_start();
 
         <!-- Footer Links -->
         <div class="footer-links">
-            <a href="job-seeker.php">Saya adalah Pencari kerja</a>
+            <a href="../login.php">Saya adalah Pencari kerja</a>
             <a href="https://wa.me/081187771001" target="_blank">Hubungi kami via WhatsApp</a>
         </div>
 
