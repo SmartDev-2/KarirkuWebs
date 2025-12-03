@@ -237,16 +237,6 @@ include 'header.php';
                     <a href="persetujuan.php?action=tolak&id=<?= $id_lowongan ?>" class="btn-action btn-reject" onclick="return confirm('Tolak lowongan ini?')">
                         Tolak Lowongan
                     </a>
-                
-                <?php elseif ($status == 'publish' || $status == 'aktif'): ?>
-                    <a href="persetujuan.php?action=tolak&id=<?= $id_lowongan ?>" class="btn-action btn-reject" onclick="return confirm('Batalkan publish?')">
-                        Batalkan Publish
-                    </a>
-
-                <?php elseif ($status == 'ditolak'): ?>
-                    <a href="persetujuan.php?action=acc&id=<?= $id_lowongan ?>" class="btn-action btn-acc" onclick="return confirm('Pulihkan lowongan?')">
-                        Pulihkan
-                    </a>
                 <?php endif; ?>
                 
                 <a href="persetujuan.php" style="font-size:12px; color:#777; margin-top:5px; text-decoration:none;">&larr; Kembali</a>
