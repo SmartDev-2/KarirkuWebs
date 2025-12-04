@@ -62,13 +62,49 @@ foreach ($all_jobs as $job) {
 function time_elapsed_string($datetime, $full = false) {
     if(empty($datetime)) return '-';
     try {
-        $now = new DateTime; $ago = new DateTime($datetime); $diff = $now->diff($ago);
-        $diff->w = floor($diff->d / 7); $diff->d -= $diff->w * 7;
-        $string = array('y' => 'thn', 'm' => 'bln', 'w' => 'mgg', 'd' => 'hari', 'h' => 'jam', 'i' => 'mnt', 's' => 'dtk');
-        foreach ($string as $k => &$v) { if ($diff->$k) $v = $diff->$k . ' ' . $v; else unset($string[$k]); }
+        $now = new DateTime; 
+        $ago = new DateTime($datetime); 
+        $diff = $now->diff($ago);
+        
+        // Calculate weeks separately
+        $weeks = floor($diff->d / 7);
+        $remaining_days = $diff->d - ($weeks * 7);
+        
+        $string = [
+            'y' => 'thn',
+            'm' => 'bln',
+            'w' => 'mgg',
+            'd' => 'hari',
+            'h' => 'jam',
+            'i' => 'mnt',
+            's' => 'dtk'
+        ];
+        
+        // Create array with values
+        $values = [
+            'y' => $diff->y,
+            'm' => $diff->m,
+            'w' => $weeks,
+            'd' => $remaining_days,
+            'h' => $diff->h,
+            'i' => $diff->i,
+            's' => $diff->s
+        ];
+        
+        // Filter out zero values
+        foreach ($string as $k => &$v) {
+            if ($values[$k]) {
+                $v = $values[$k] . ' ' . $v;
+            } else {
+                unset($string[$k]);
+            }
+        }
+        
         if (!$full) $string = array_slice($string, 0, 1);
         return $string ? implode(', ', $string) . ' lalu' : 'Baru saja';
-    } catch(Exception $e) { return '-'; }
+    } catch(Exception $e) { 
+        return '-'; 
+    }
 }
 
 $activePage = 'persetujuan'; 
