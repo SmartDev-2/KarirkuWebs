@@ -200,7 +200,7 @@ function getKategoriCount($kategoriName, $kategoriCounts)
 
                 <div class="collapse navbar-collapse justify-content-between" id="navbarCollapse">
                     <div class="navbar-nav ms-0 mt-1">
-                        <a href="index.php" class="nav-item nav-link active">Home</a>
+                        <a href="index.php" class="nav-item nav-link active">Beranda</a>
                         <a href="views/job-list.php" class="nav-item nav-link">Cari Pekerjaan</a>
                     </div>
 
@@ -298,8 +298,8 @@ function getKategoriCount($kategoriName, $kategoriCounts)
                                 </button>
                             </div>
                         <?php else: ?>
-                            <a href="views/register.php" class="btn-register">Register</a>
-                            <a href="views/login.php" class="btn-login">Login</a>
+                            <a href="views/register.php" class="btn-register">Daftar</a>
+                            <a href="views/login.php" class="btn-login">Masuk</a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -318,7 +318,7 @@ function getKategoriCount($kategoriName, $kategoriCounts)
                                     <h1 class="display-3 text-white animated slideInDown mb-4">Carilah Masa Depanmu Bersama Kami</h1>
                                     <p class="fs-5 fw-medium text-white mb-4 pb-2">Bangun karier impianmu bersama kami. Temukan peluang, jaringan, dan inspirasi untuk menapaki masa depan yang lebih gemilang</p>
                                     <?php if (!$isLoggedIn): ?>
-                                        <a href="views/register.php" class="btn btn-primary py-3 px-5">Daftar Sekarang</a>
+                                        <a href="views/register.php" class="btn btn-primary py-3 px-5" style="border-radius: 20px;">Daftar Sekarang</a>
                                     <?php else: ?>
                                         <a href="views/job-list.php" class="btn btn-primary py-3 px-5">Cari Lowongan</a>
                                     <?php endif; ?>
@@ -425,7 +425,7 @@ function getKategoriCount($kategoriName, $kategoriCounts)
                         <p><i class="fa fa-check text-primary me-3"></i>Dukungan penuh untuk pertumbuhan berkelanjutan</p>
                         <p>Daftarkan akun anda sekarang juga</p>
                         <?php if (!$isLoggedIn): ?>
-                            <a class="btn btn-primary py-3 px-5 mt-3" href="register.php">Register</a>
+                            <a class="btn btn-primary py-3 px-5 mt-3" href="register.php" style="border-radius: 18px;">Daftar</a>
                         <?php else: ?>
                             <a class="btn btn-primary py-3 px-5 mt-3" href="views/job-list.php">Cari Lowongan</a>
                         <?php endif; ?>
@@ -438,12 +438,12 @@ function getKategoriCount($kategoriName, $kategoriCounts)
         <!-- Jobs Start -->
         <div class="container-xxl py-5">
             <div class="container">
-                <h1 class="text-center mb-5 wow fadeInUp" data-wow-delay="0.1s">Job Listing</h1>
+                <h1 class="text-center mb-5 wow fadeInUp" data-wow-delay="0.1s">Daftar Pekerjaan</h1>
                 <div class="tab-class text-center wow fadeInUp" data-wow-delay="0.3s">
                     <ul class="nav nav-pills d-inline-flex justify-content-center border-bottom mb-5">
                         <li class="nav-item">
                             <a class="d-flex align-items-center text-start mx-3 ms-0 pb-3 active" data-bs-toggle="pill" href="#tab-1">
-                                <h6 class="mt-n1 mb-0">Featured</h6>
+                                <h6 class="mt-n1 mb-0">Fitur</h6>
                             </a>
                         </li>
                     </ul>
@@ -469,9 +469,9 @@ function getKategoriCount($kategoriName, $kategoriCounts)
                                             <div class="col-sm-12 col-md-4 d-flex flex-column align-items-start align-items-md-end justify-content-center">
                                                 <div class="d-flex mb-3">
                                                     <?php if ($isLoggedIn): ?>
-                                                        <a class="btn btn-primary" href="views/job-detail.php?id=<?= htmlspecialchars($row['id_lowongan'] ?? '') ?>">Apply Now</a>
+                                                        <a class="btn btn-primary" href="views/job-detail.php?id=<?= htmlspecialchars($row['id_lowongan'] ?? '') ?>" style="border-radius: 20px;">Apply Sekarang</a>
                                                     <?php else: ?>
-                                                        <a class="btn btn-primary" href="views/login.php">Login untuk Apply</a>
+                                                        <a class="btn btn-primary" href="views/login.php" style="border-radius: 20px;">Login untuk Apply</a>
                                                     <?php endif; ?>
                                                 </div>
                                                 <small class="text-truncate"><i class="far fa-calendar-alt text-primary me-2"></i>Date Line: <?= !empty($row['batas_tanggal']) ? date('d M Y', strtotime($row['batas_tanggal'])) : 'Tidak ditentukan' ?></small>
@@ -487,7 +487,7 @@ function getKategoriCount($kategoriName, $kategoriCounts)
                                     </div>
                                 </div>
                             <?php endif; ?>
-                            <a class="btn btn-primary py-3 px-5" href="views/job-list.php" style="background-color: #001f66;">Lainnya</a>
+                            <a class="btn btn-primary py-3 px-5" href="views/job-list.php" style="background-color: #001f66; border-radius: 18px;">Lainnya</a>
                         </div>
                     </div>
                 </div>

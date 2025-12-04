@@ -226,7 +226,7 @@ $benefit_list = parseBenefit($data['benefit']);
 
                 <div class="collapse navbar-collapse justify-content-between" id="navbarCollapse">
                     <div class="navbar-nav ms-0 mt-1">
-                        <a href="../index.php" class="nav-item nav-link active">Home</a>
+                        <a href="../index.php" class="nav-item nav-link active">Beranda</a>
                         <a href="job-list.php" class="nav-item nav-link">Cari Pekerjaan</a>
                     </div>
 
@@ -325,8 +325,8 @@ $benefit_list = parseBenefit($data['benefit']);
                                 </button>
                             </div>
                         <?php else: ?>
-                            <a href="register.php" class="btn-register">Register</a>
-                            <a href="login.php" class="btn-login">Login</a>
+                            <a href="register.php" class="btn-register">Daftar</a>
+                            <a href="login.php" class="btn-login">Masuk</a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -337,12 +337,12 @@ $benefit_list = parseBenefit($data['benefit']);
         <!-- Header End -->
         <div class="container-xxl py-5 bg-dark page-header mb-5">
             <div class="container my-5 pt-5 pb-4">
-                <h1 class="display-3 text-white mb-3 animated slideInDown">Job Detail</h1>
+                <h1 class="display-3 text-white mb-3 animated slideInDown">Detail Pekerjaan</h1>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb text-uppercase">
                         <li class="breadcrumb-item"><a href="../index.php">Home</a></li>
                         <li class="breadcrumb-item"><a href="job-list.php">Job List</a></li>
-                        <li class="breadcrumb-item text-white active" aria-current="page">Job Detail</li>
+                        <li class="breadcrumb-item text-white active" aria-current="page">Detail Pekerjaan</li>
                     </ol>
                 </nav>
             </div>
@@ -369,7 +369,7 @@ $benefit_list = parseBenefit($data['benefit']);
                         </div>
 
                         <div class="mb-5">
-                            <h4 class="mb-3">Job description</h4>
+                            <h4 class="mb-3">Deskripsi Pekerjaan</h4>
                             <p><?= htmlspecialchars($data['deskripsi']) ?></p>
 
                             <h4 class="mb-3">Kualifikasi</h4>
@@ -396,7 +396,7 @@ $benefit_list = parseBenefit($data['benefit']);
                         </div>
                         <!-- Tambahkan di bagian setelah job summary, sebelum company detail -->
                         <div class="bg-light rounded p-5 mb-4 wow slideInUp" data-wow-delay="0.1s">
-                            <h4 class="mb-4">Apply For This Job</h4>
+                            <h4 class="mb-4">Apply Pekerjaan ini</h4>
                             <?php if ($isLoggedIn && $_SESSION['role'] === 'pencaker'): ?>
                                 <?php
                                 // Ambil data pencaker
@@ -433,7 +433,7 @@ $benefit_list = parseBenefit($data['benefit']);
                                     <?php if ($hasCV): ?>
                                         <!-- Jika memiliki CV, tampilkan tombol Apply Now -->
                                         <a href="apply-job.php?id=<?= $id_lowongan ?>" class="btn btn-primary w-100 btn-lg">
-                                            <i class="fas fa-paper-plane me-2"></i>Apply Now
+                                            <i class="fas fa-paper-plane me-2"></i>Apply Sekarang
                                         </a>
                                     <?php else: ?>
                                         <!-- Jika tidak memiliki CV, tampilkan tombol Lengkapi Identitas -->
@@ -449,28 +449,28 @@ $benefit_list = parseBenefit($data['benefit']);
                             <?php else: ?>
                                 <div class="alert alert-warning">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
-                                    Silakan login sebagai pencaker untuk mengirim lamaran.
+                                    Silakan Masuk sebagai pencaker untuk mengirim lamaran.
                                 </div>
-                                <a href="login.php" class="btn btn-outline-primary w-100">Login</a>
+                                <a href="login.php" class="btn btn-outline-primary w-100">Masuk</a>
                             <?php endif; ?>
                         </div>
                     </div>
 
                     <div class="col-lg-4">
                         <div class="bg-light rounded p-5 mb-4 wow slideInUp" data-wow-delay="0.1s">
-                            <h4 class="mb-4">Job Summery</h4>
-                            <p><i class="fa fa-angle-right text-primary me-2"></i>Published On: <?= htmlspecialchars($data['dibuat_pada']) ?></p>
+                            <h4 class="mb-4">Ringkasan Pekerjaan</h4>
+                            <p><i class="fa fa-angle-right text-primary me-2"></i>Dipublish di: <?= htmlspecialchars($data['dibuat_pada']) ?></p>
                             <p><i class="fa fa-angle-right text-primary me-2"></i>Kategori: <?= htmlspecialchars($data['kategori']) ?></p>
-                            <p><i class="fa fa-angle-right text-primary me-2"></i>Job Nature: <?= htmlspecialchars(formatTipePekerjaan($data['tipe_pekerjaan'])) ?></p>
-                            <p><i class="fa fa-angle-right text-primary me-2"></i>Salary: <?= htmlspecialchars($data['gaji']) ?> juta</p>
-                            <p><i class="fa fa-angle-right text-primary me-2"></i>Location: <?= htmlspecialchars($data['lokasi']) ?></p>
+                            <p><i class="fa fa-angle-right text-primary me-2"></i>Jenis Kerja: <?= htmlspecialchars(formatTipePekerjaan($data['tipe_pekerjaan'])) ?></p>
+                            <p><i class="fa fa-angle-right text-primary me-2"></i>Gaji: <?= htmlspecialchars($data['gaji']) ?> juta</p>
+                            <p><i class="fa fa-angle-right text-primary me-2"></i>Lokasi: <?= htmlspecialchars($data['lokasi']) ?></p>
                             <p><i class="fa fa-angle-right text-primary me-2"></i>Mode Kerja: <?= htmlspecialchars($data['mode_kerja']) ?></p>
                             <p class="m-0"><i class="fa fa-angle-right text-primary me-2"></i>Date Line: <?= htmlspecialchars($data['batas_tanggal']) ?></p>
                         </div>
 
                         <!-- Company Detail Section -->
                         <div class="company-detail-section wow slideInUp" data-wow-delay="0.1s">
-                            <h4 class="mb-4">Company Detail</h4>
+                            <h4 class="mb-4">Detail Perusahaan</h4>
 
                             <?php if (!empty($perusahaan)): ?>
                                 <!-- Nama Perusahaan -->

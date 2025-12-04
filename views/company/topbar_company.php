@@ -135,10 +135,6 @@ if (!isset($_SESSION['nama_perusahaan']) || !isset($_SESSION['logo_url'])) {
                 </div>
             </button>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                <li><a class="dropdown-item" href="edit_company.php">
-                        <i class="fas fa-edit me-2"></i>Edit Profil
-                    </a></li>
-                <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item text-danger" href="logout.php">
                         <i class="fas fa-sign-out-alt me-2"></i>Logout
                     </a></li>

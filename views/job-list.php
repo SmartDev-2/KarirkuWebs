@@ -1,6 +1,21 @@
 <?php
 require __DIR__ . '/../function/job-functions.php';
 
+// TAMBAHKAN: Fungsi untuk cek expired
+if (!function_exists('isLowonganExpired')) {
+    function isLowonganExpired($batas_tanggal)
+    {
+        if (empty($batas_tanggal)) {
+            return false; // Tidak ada batas tanggal, tidak pernah expired
+        }
+
+        $batasTanggal = strtotime($batas_tanggal);
+        $hariIni = strtotime(date('Y-m-d'));
+
+        return $batasTanggal < $hariIni;
+    }
+}
+
 session_start();
 $isLoggedIn = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
 $userName = $_SESSION['user_name'] ?? '';
@@ -142,6 +157,7 @@ if (isset($_GET['debug'])) {
 
     <!-- Template Stylesheet -->
     <link href="../assets/css/style.css" rel="stylesheet">
+    <link href="../assets/css/job-list.css" rel="stylesheet">
 
     <style>
         body {
@@ -318,53 +334,6 @@ if (isset($_GET['debug'])) {
             border-radius: 8px;
         }
 
-        /* Save Button Styles */
-        .save-button-container {
-            position: absolute;
-            top: 33px;
-            right: 175px;
-            z-index: 10;
-        }
-
-        .save-form {
-            margin: 0;
-            padding: 0;
-        }
-
-        .btn-save {
-            background: white;
-            border: 2px solid #dee2e6;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6c757d;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 18px;
-            text-decoration: none;
-        }
-
-        .btn-save:hover {
-            background: #003399;
-            border-color: #003399;
-            color: white;
-            transform: scale(1.1);
-        }
-
-        .btn-save.saved {
-            background: #003399;
-            border-color: #003399;
-            color: white;
-        }
-
-        .btn-save.saved:hover {
-            background: #dc3545;
-            border-color: #dc3545;
-        }
-
         /* Job item positioning */
         .job-item {
             position: relative;
@@ -382,6 +351,7 @@ if (isset($_GET['debug'])) {
                 width: 35px;
                 height: 35px;
                 font-size: 16px;
+                border: none;
             }
         }
 
@@ -420,6 +390,131 @@ if (isset($_GET['debug'])) {
         #notificationDropdown:hover i {
             transform: scale(1.1);
         }
+
+        .expired-job {
+            opacity: 0.7;
+            background-color: #f8f9fa;
+        }
+
+        .expired-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 5;
+        }
+
+        /* Perbaikan untuk Job Items */
+        .job-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .job-item:hover {
+            box-shadow: 0 8px 25px rgba(0, 31, 102, 0.1);
+            transform: translateY(-2px);
+            border-color: #001f66;
+        }
+
+        /* Logo perusahaan */
+        .company-logo-list {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            border: 1px solid #f0f0f0;
+            padding: 5px;
+            background: white;
+        }
+
+        /* Search container */
+        .search-container {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-input i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+
+        .search-input input {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .search-input input:focus {
+            border-color: #001f66;
+            box-shadow: 0 0 0 0.25rem rgba(0, 31, 102, 0.1);
+            outline: none;
+        }
+
+        .location-select select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #495057;
+            background: white;
+        }
+
+        .search-button {
+            background: linear-gradient(135deg, #001f66, #002c99);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .search-button:hover {
+            background: linear-gradient(135deg, #002c99, #0033cc);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 31, 102, 0.2);
+        }
+
+        /* Pagination */
+        .pagination .page-item.active .page-link {
+            background-color: #001f66;
+            border-color: #001f66;
+        }
+
+        .pagination .page-link {
+            color: #001f66;
+            border: 1px solid #dee2e6;
+            padding: 8px 15px;
+            margin: 0 3px;
+            border-radius: 6px;
+        }
+
+        .pagination .page-link:hover {
+            background-color: #f8f9fa;
+            color: #001f66;
+        }
     </style>
 </head>
 
@@ -428,7 +523,7 @@ if (isset($_GET['debug'])) {
     <!-- Spinner Start -->
     <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
         <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
-            
+
         </div>
     </div>
     <!-- Spinner End -->
@@ -545,8 +640,8 @@ if (isset($_GET['debug'])) {
                             </button>
                         </div>
                     <?php else: ?>
-                        <a href="register.php" class="btn-register">Register</a>
-                        <a href="login.php" class="btn-login">Login</a>
+                        <a href="register.php" class="btn-register">Daftar</a>
+                        <a href="login.php" class="btn-login">Masuk</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -557,7 +652,7 @@ if (isset($_GET['debug'])) {
     <!-- Header End -->
     <div class="container-xxl py-5 bg-dark page-header mb-5">
         <div class="container my-5 pt-5 pb-4">
-            <h1 class="display-3 text-white mb-3 animated slideInDown">Job List</h1>
+            <h1 class="display-3 text-white mb-3 animated slideInDown">List Pekerjaan</h1>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb text-uppercase">
                     <li class="breadcrumb-item"><a href="../index.php">Home</a></li>
@@ -621,100 +716,168 @@ if (isset($_GET['debug'])) {
         <?php endif; ?>
 
         <?php if (!empty($data)) : ?>
-            <?php foreach ($data as $row): ?>
-                <?php
-                $logoUrl = getCompanyLogoUrl($row);
-                $companyName = getCompanyName($row);
-                $isFavorited = in_array($row['id_lowongan'], $favorit_lowongan);
-                ?>
-                <div class="job-item p-4 mb-4 border rounded shadow-sm position-relative">
-                    <!-- Save Button -->
-                    <div class="save-button-container">
-                        <?php if ($isLoggedIn): ?>
-                            <form method="POST" class="save-form">
-                                <input type="hidden" name="id_lowongan" value="<?= htmlspecialchars($row['id_lowongan']) ?>">
-                                <input type="hidden" name="action" value="<?= $isFavorited ? 'unsave' : 'save' ?>">
-                                <button type="submit" class="btn-save <?= $isFavorited ? 'saved' : '' ?>"
-                                    title="<?= $isFavorited ? 'Hapus dari favorit' : 'Simpan ke favorit' ?>">
-                                    <i class="<?= $isFavorited ? 'fas' : 'far' ?> fa-bookmark"></i>
-                                </button>
-                            </form>
-                        <?php else: ?>
-                            <a href="login.php?redirect=<?= urlencode($_SERVER['REQUEST_URI']) ?>"
-                                class="btn-save" title="Login untuk menyimpan">
-                                <i class="far fa-bookmark"></i>
-                            </a>
-                        <?php endif; ?>
-                    </div>
+            <div class="row g-4">
+                <?php foreach ($data as $row): ?>
+                    <?php
+                    $logoUrl = getCompanyLogoUrl($row);
+                    $companyName = getCompanyName($row);
+                    $isFavorited = in_array($row['id_lowongan'], $favorit_lowongan);
+                    ?>
 
-                    <div class="row align-items-center">
-                        <div class="col-md-2 text-center">
-                            <img src="<?= htmlspecialchars($logoUrl) ?>"
-                                alt="Logo <?= htmlspecialchars($companyName) ?>"
-                                class="company-logo-list rounded">
-                        </div>
-                        <div class="col-md-7">
-                            <h5 class="fw-bold mb-1"><?= htmlspecialchars($row['judul'] ?? 'Judul tidak tersedia') ?></h5>
-                            <p class="mb-1 text-muted">
-                                <i class="fa fa-building me-2"></i><?= htmlspecialchars($companyName) ?> |
-                                <i class="fa fa-map-marker-alt me-2"></i><?= htmlspecialchars($row['lokasi'] ?? 'Lokasi tidak tersedia') ?> |
-                                <i class="fa fa-tags me-2"></i><?= htmlspecialchars($row['kategori'] ?? 'Kategori tidak tersedia') ?>
-                            </p>
-                            <p class="mb-1 text-muted">
-                                <i class="fa fa-briefcase me-2"></i><?= htmlspecialchars(formatTipePekerjaan($row['tipe_pekerjaan'] ?? '')) ?> |
-                                <i class="fa fa-coins me-2"></i><?= htmlspecialchars($row['gaji_range'] ?? 'Gaji tidak tersedia') ?> |
-                                <i class="fa fa-building me-2"></i><?= htmlspecialchars($row['mode_kerja'] ?? 'Mode kerja tidak tersedia') ?>
-                            </p>
-                            <p class="mb-0"><?= htmlspecialchars(substr($row['deskripsi'] ?? '', 0, 150)) ?>...</p>
-                        </div>
-                        <div class="col-md-3 text-end">
-                            <a href="job-detail.php?id=<?= htmlspecialchars($row['id_lowongan']) ?>" class="btn btn-primary rounded-pill px-4">Apply Now</a>
-                            <div class="text-muted mt-2">
-                                <i class="fa fa-hourglass-half me-2"></i>
-                                Batas: <?= !empty($row['batas_tanggal']) ? date('d M Y', strtotime($row['batas_tanggal'])) : 'Tidak ditentukan' ?>
+                    <div class="col-12">
+                        <div class="job-item p-4 mb-4 border rounded shadow-sm position-relative bg-white">
+                            <!-- Save Button -->
+                            <div class="save-button-container">
+                                <?php if ($isLoggedIn): ?>
+                                    <form method="POST" class="save-form">
+                                        <input type="hidden" name="id_lowongan" value="<?= htmlspecialchars($row['id_lowongan']) ?>">
+                                        <input type="hidden" name="action" value="<?= $isFavorited ? 'unsave' : 'save' ?>">
+                                        <button type="submit" class="btn-save <?= $isFavorited ? 'saved' : '' ?>"
+                                            title="<?= $isFavorited ? 'Hapus dari favorit' : 'Simpan ke favorit' ?>">
+                                            <i class="<?= $isFavorited ? 'fas' : 'far' ?> fa-bookmark"></i>
+                                        </button>
+                                    </form>
+                                <?php else: ?>
+                                    <a href="login.php?redirect=<?= urlencode($_SERVER['REQUEST_URI']) ?>"
+                                        class="btn-save" title="Login untuk menyimpan">
+                                        <i class="far fa-bookmark"></i>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="row g-4 align-items-center">
+                                <!-- Company Logo Column -->
+                                <div class="col-md-2 col-lg-1 text-center">
+                                    <div class="d-flex justify-content-center">
+                                        <img src="<?= htmlspecialchars($logoUrl) ?>"
+                                            alt="Logo <?= htmlspecialchars($companyName) ?>"
+                                            class="company-logo-list rounded"
+                                            style="width: 80px; height: 80px; object-fit: cover;">
+                                    </div>
+                                </div>
+
+                                <!-- Job Details Column -->
+                                <div class="col-md-6 col-lg-8">
+                                    <div class="job-details">
+                                        <h5 class="fw-bold mb-2 text-primary"><?= htmlspecialchars($row['judul'] ?? 'Judul tidak tersedia') ?></h5>
+
+                                        <div class="company-info mb-2">
+                                            <span class="text-dark fw-semibold">
+                                                <i class="fas fa-building me-1"></i>
+                                                <?= htmlspecialchars($companyName) ?>
+                                            </span>
+                                            <span class="text-muted mx-2">|</span>
+                                            <span class="text-dark">
+                                                <i class="fas fa-map-marker-alt me-1"></i>
+                                                <?= htmlspecialchars($row['lokasi'] ?? 'Lokasi tidak tersedia') ?>
+                                            </span>
+                                            <span class="text-muted mx-2">|</span>
+                                            <span class="text-dark">
+                                                <i class="fas fa-tag me-1"></i>
+                                                <?= htmlspecialchars($row['kategori'] ?? 'Kategori tidak tersedia') ?>
+                                            </span>
+                                        </div>
+
+                                        <div class="job-meta mb-2">
+                                            <span class="badge bg-light text-dark border me-2">
+                                                <i class="fas fa-briefcase me-1"></i>
+                                                <?= htmlspecialchars(formatTipePekerjaan($row['tipe_pekerjaan'] ?? '')) ?>
+                                            </span>
+                                            <span class="badge bg-light text-dark border me-2">
+                                                <i class="fas fa-money-bill-wave me-1"></i>
+                                                <?= htmlspecialchars($row['gaji_range'] ?? 'Gaji tidak tersedia') ?>
+                                            </span>
+                                            <span class="badge bg-light text-dark border">
+                                                <i class="fas fa-building me-1"></i>
+                                                <?= htmlspecialchars($row['mode_kerja'] ?? 'Mode kerja tidak tersedia') ?>
+                                            </span>
+                                        </div>
+
+                                        <p class="text-secondary mb-0" style="font-size: 0.9rem; color: black !important;">
+                                            <?= htmlspecialchars(substr($row['deskripsi'] ?? '', 0, 200)) ?>...
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Apply Button Column -->
+                                <div class="col-md-4 col-lg-3">
+                                    <div class="d-flex flex-column align-items-end h-100">
+                                        <div class="mb-3">
+                                            <a href="job-detail.php?id=<?= htmlspecialchars($row['id_lowongan']) ?>"
+                                                class="btn btn-primary rounded-pill px-4 py-2 fw-semibold">
+                                                <i class="fas fa-paper-plane me-2"></i>Apply Sekarang
+                                            </a>
+                                        </div>
+
+                                        <div class="text-end">
+                                            <div class="deadline-info">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-hourglass-half me-1"></i>
+                                                    Batas:
+                                                    <span class="fw-semibold">
+                                                        <?= !empty($row['batas_tanggal']) ? date('d M Y', strtotime($row['batas_tanggal'])) : 'Tidak ditentukan' ?>
+                                                    </span>
+                                                </small>
+                                            </div>
+                                            <div class="posted-date mt-1">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-calendar-alt me-1"></i>
+                                                    Diposting: <?= !empty($row['dibuat_pada']) ? date('d M Y', strtotime($row['dibuat_pada'])) : '-' ?>
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            <?php endforeach; ?>
+                <?php endforeach; ?>
+            </div>
         <?php else: ?>
             <div class="text-center py-5">
-                <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">Tidak ada lowongan yang ditemukan</h5>
-                <?php if ($totalData === 0 && empty($searchKeyword) && empty($searchLokasi)): ?>
-                    <p class="text-muted">Belum ada lowongan yang tersedia saat ini</p>
-                    <?php if (isset($_GET['debug'])): ?>
-                        <div class="alert alert-warning mt-3">
-                            <small>
-                                Debug Info:<br>
-                                Success: <?= $result['success'] ? 'true' : 'false' ?><br>
-                                Error: <?= $result['error'] ?? 'None' ?><br>
-                                Data Count: <?= count($data) ?><br>
-                                Total Data: <?= $totalData ?>
-                            </small>
-                        </div>
+                <div class="no-job-found">
+                    <i class="fas fa-search fa-4x text-muted mb-4"></i>
+                    <h4 class="text-muted mb-3">Tidak ada lowongan yang ditemukan</h4>
+                    <?php if ($totalData === 0 && empty($searchKeyword) && empty($searchLokasi)): ?>
+                        <p class="text-muted mb-4">Belum ada lowongan yang tersedia saat ini.</p>
+                    <?php elseif (!empty($searchKeyword) || (!empty($searchLokasi) && $searchLokasi !== 'semua')): ?>
+                        <p class="text-muted mb-4">Coba ubah kata kunci atau filter lokasi Anda.</p>
+                        <a href="?keyword=&lokasi=" class="btn btn-primary rounded-pill px-4">
+                            <i class="fas fa-redo me-2"></i>Tampilkan Semua Lowongan
+                        </a>
                     <?php endif; ?>
-                <?php elseif (!empty($searchKeyword) || (!empty($searchLokasi) && $searchLokasi !== 'semua')): ?>
-                    <p class="text-muted">Coba ubah kata kunci atau filter lokasi Anda</p>
-                    <a href="?keyword=&lokasi=" class="btn btn-primary mt-2">Tampilkan Semua Lowongan</a>
-                <?php endif; ?>
+                </div>
             </div>
         <?php endif; ?>
 
+        <!-- Pagination -->
         <?php if ($totalPages > 1): ?>
-            <div class="d-flex justify-content-center mt-4">
-                <nav>
+            <div class="d-flex justify-content-center mt-5">
+                <nav aria-label="Page navigation">
                     <ul class="pagination">
                         <?php if ($currentPage > 1): ?>
                             <li class="page-item">
                                 <a class="page-link"
-                                    href="?page=<?= $currentPage - 1 ?>&keyword=<?= urlencode($searchKeyword) ?>&lokasi=<?= urlencode($searchLokasi) ?>">
-                                    « Prev
+                                    href="?page=<?= $currentPage - 1 ?>&keyword=<?= urlencode($searchKeyword) ?>&lokasi=<?= urlencode($searchLokasi) ?>"
+                                    aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
                                 </a>
                             </li>
                         <?php endif; ?>
 
-                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                        <?php
+                        // Calculate pagination range
+                        $startPage = max(1, $currentPage - 2);
+                        $endPage = min($totalPages, $currentPage + 2);
+
+                        if ($startPage > 1): ?>
+                            <li class="page-item"><a class="page-link" href="?page=1&keyword=<?= urlencode($searchKeyword) ?>&lokasi=<?= urlencode($searchLokasi) ?>">1</a></li>
+                            <?php if ($startPage > 2): ?>
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            <?php endif; ?>
+                        <?php endif; ?>
+
+                        <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                             <li class="page-item <?= $i == $currentPage ? 'active' : '' ?>">
                                 <a class="page-link"
                                     href="?page=<?= $i ?>&keyword=<?= urlencode($searchKeyword) ?>&lokasi=<?= urlencode($searchLokasi) ?>">
@@ -723,11 +886,19 @@ if (isset($_GET['debug'])) {
                             </li>
                         <?php endfor; ?>
 
+                        <?php if ($endPage < $totalPages): ?>
+                            <?php if ($endPage < $totalPages - 1): ?>
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            <?php endif; ?>
+                            <li class="page-item"><a class="page-link" href="?page=<?= $totalPages ?>&keyword=<?= urlencode($searchKeyword) ?>&lokasi=<?= urlencode($searchLokasi) ?>"><?= $totalPages ?></a></li>
+                        <?php endif; ?>
+
                         <?php if ($currentPage < $totalPages): ?>
                             <li class="page-item">
                                 <a class="page-link"
-                                    href="?page=<?= $currentPage + 1 ?>&keyword=<?= urlencode($searchKeyword) ?>&lokasi=<?= urlencode($searchLokasi) ?>">
-                                    Next »
+                                    href="?page=<?= $currentPage + 1 ?>&keyword=<?= urlencode($searchKeyword) ?>&lokasi=<?= urlencode($searchLokasi) ?>"
+                                    aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
                                 </a>
                             </li>
                         <?php endif; ?>

@@ -237,7 +237,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 
             <div class="collapse navbar-collapse justify-content-between" id="navbarCollapse">
                 <div class="navbar-nav ms-0 mt-1">
-                    <a href="../index.php" class="nav-item nav-link active">Home</a>
+                    <a href="../index.php" class="nav-item nav-link active">Beranda</a>
                     <a href="job-list.php" class="nav-item nav-link">Cari Pekerjaan</a>
                 </div>
                 <div class="auth-buttons d-flex align-items-center">
@@ -252,7 +252,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
         </div>
         <div class="login-card1">
             <div class="login-body">
-                <h4 class="login-title"><img src="../assets/img/karirkulogo.png" alt="" style="width: 40px;"> Login</h4>
+                <h4 class="login-title"><img src="../assets/img/karirkulogo.png" alt="" style="width: 40px;"> Masuk</h4>
                 <!-- Pastikan action form sudah benar -->
                 <form action="../function/auth-process.php" method="POST" id="loginForm">
                     <input type="hidden" name="action" value="login">
@@ -268,7 +268,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
                     <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
                         <div>
                             <a href="company/login.php" style="color: #001f66; text-decoration: none; font-size: 14px;">
-                                Login Perusahaan
+                                Masuk Sebagai Perusahaan
                             </a>
                         </div>
                         <div>
@@ -325,10 +325,10 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
         </div>
         <!-- Tombol submit untuk form login -->
         <button type="submit" form="loginForm" class="btn-daftar-primary" style="display: inline-block; text-align: center; text-decoration: none;">
-            Login
+            Masuk
         </button>
         <div class="span-text">
-            <h1>Belum punya akun? <a href="register.php">Register</h1></a>
+            <h1>Belum punya akun? <a href="register.php">Daftar</h1></a>
         </div>
     </div>
     <!-- Login Container End -->

@@ -6,15 +6,17 @@ function getDaftarLokasi()
     try {
         $params = [
             'select' => 'lokasi',
-            'status' => 'eq.publish', // PERBAIKAN: Gunakan status yang benar
+            'status' => 'eq.publish',
             'order' => 'lokasi.asc'
         ];
+
+        // TAMBAHAN: Filter untuk hanya mengambil lowongan yang belum expired
+        $params['or'] = "(batas_tanggal.is.null,batas_tanggal.gte." . date('Y-m-d') . ")";
 
         $response = supabaseQuery('lowongan', $params);
 
         if (!$response['success']) {
             error_log("Error fetching locations: " . ($response['error'] ?? 'Unknown error'));
-            // Return default locations jika query gagal
             return ['Jakarta', 'Surabaya', 'Bandung', 'Malang', 'Jember'];
         }
 
@@ -27,7 +29,6 @@ function getDaftarLokasi()
             }
         }
 
-        // Jika tidak ada lokasi, berikan default
         if (empty($lokasiUnik)) {
             $lokasiUnik = ['Jakarta', 'Surabaya', 'Bandung', 'Malang', 'Jember'];
         }
@@ -50,7 +51,6 @@ function searchLowongan($keyword = '', $lokasi = '', $page = 1, $limit = 5)
     error_log("searchLowongan called with: keyword='$keyword', lokasi='$lokasi', page=$page, limit=$limit");
 
     try {
-        // PERBAIKAN: Query tanpa join dulu, join manual di PHP
         $params = [
             'select' => 'id_lowongan, judul, deskripsi, kualifikasi, lokasi, tipe_pekerjaan, gaji_range, dibuat_pada, batas_tanggal, status, kategori, mode_kerja, benefit, id_perusahaan',
             'limit' => $limit,
@@ -58,11 +58,14 @@ function searchLowongan($keyword = '', $lokasi = '', $page = 1, $limit = 5)
             'order' => 'dibuat_pada.desc'
         ];
 
-        // PERBAIKAN: Gunakan filter status yang benar
-        $params['status'] = 'eq.publish'; // Sesuai dengan nilai di skema database
+        // TAMBAHAN: Filter untuk status publish DAN belum expired
+        $params['status'] = 'eq.publish';
+        $params['or'] = "(batas_tanggal.is.null,batas_tanggal.gte." . date('Y-m-d') . ")";
 
+        // Tambahkan filter keyword ke dalam kondisi OR yang sudah ada
         if (!empty($keyword)) {
-            $params['or'] = "(judul.ilike.%{$keyword}%,kategori.ilike.%{$keyword}%,deskripsi.ilike.%{$keyword}%,kualifikasi.ilike.%{$keyword}%)";
+            // Gabungkan kondisi keyword dengan kondisi batas_tanggal
+            $params['or'] = "({$params['or']}.and.(judul.ilike.%{$keyword}%,kategori.ilike.%{$keyword}%,deskripsi.ilike.%{$keyword}%,kualifikasi.ilike.%{$keyword}%))";
         }
 
         if (!empty($lokasi) && $lokasi !== 'semua') {
@@ -84,7 +87,21 @@ function searchLowongan($keyword = '', $lokasi = '', $page = 1, $limit = 5)
 
         error_log("Data lowongan raw count: " . count($data));
 
-        // PERBAIKAN: Ambil data perusahaan secara terpisah untuk join manual
+        // Filter tambahan di PHP untuk memastikan tidak ada yang expired
+        $filteredData = array_filter($data, function($row) {
+            // Jika batas_tanggal null, selalu tampilkan
+            if (empty($row['batas_tanggal'])) {
+                return true;
+            }
+            // Jika ada batas_tanggal, cek apakah belum lewat
+            $batasTanggal = strtotime($row['batas_tanggal']);
+            $hariIni = strtotime(date('Y-m-d'));
+            return $batasTanggal >= $hariIni;
+        });
+
+        $data = array_values($filteredData); // Reset array keys
+
+        // PERBAIKAN: Ambil data perusahaan secara terpisah untuk join manual di PHP
         $processedData = [];
         if (!empty($data)) {
             // Kumpulkan semua id_perusahaan yang unik
@@ -129,14 +146,15 @@ function searchLowongan($keyword = '', $lokasi = '', $page = 1, $limit = 5)
             }
         }
 
-        // Hitung total data
+        // Hitung total data DENGAN FILTER EXPIRED
         $countParams = [
             'select' => 'id_lowongan',
-            'status' => 'eq.publish'
+            'status' => 'eq.publish',
+            'or' => "(batas_tanggal.is.null,batas_tanggal.gte." . date('Y-m-d') . ")"
         ];
 
         if (!empty($keyword)) {
-            $countParams['or'] = "(judul.ilike.%{$keyword}%,kategori.ilike.%{$keyword}%,deskripsi.ilike.%{$keyword}%,kualifikasi.ilike.%{$keyword}%)";
+            $countParams['or'] = "({$countParams['or']}.and.(judul.ilike.%{$keyword}%,kategori.ilike.%{$keyword}%,deskripsi.ilike.%{$keyword}%,kualifikasi.ilike.%{$keyword}%))";
         }
 
         if (!empty($lokasi) && $lokasi !== 'semua') {
@@ -343,4 +361,27 @@ function validateSearchInput($input)
         'lokasi' => isset($input['lokasi']) ? trim($input['lokasi']) : '',
         'page' => isset($input['page']) ? max(1, (int)$input['page']) : 1
     ];
+}
+
+// Fungsi untuk mengecek apakah lowongan sudah expired
+function isLowonganExpired($batas_tanggal)
+{
+    if (empty($batas_tanggal)) {
+        return false; // Tidak ada batas tanggal, berarti tidak pernah expired
+    }
+    
+    $batasTanggal = strtotime($batas_tanggal);
+    $hariIni = strtotime(date('Y-m-d'));
+    
+    return $batasTanggal < $hariIni;
+}
+
+// Fungsi untuk menampilkan status lowongan
+function getStatusLowongan($lowongan)
+{
+    if (isLowonganExpired($lowongan['batas_tanggal'] ?? '')) {
+        return 'expired';
+    }
+    
+    return $lowongan['status'] ?? 'unknown';
 }

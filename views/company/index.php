@@ -509,7 +509,7 @@ if ($id_perusahaan) {
                         </div>
 
                         <div class="performa-stat-item">
-                            <div class="performa-stat-label">Lowongan Aktif</div>
+                            <div class="performa-stat-label">Jumlah Lowongan</div>
                             <div class="performa-stat-value"><?php echo $totalLowonganAktif; ?></div>
                         </div>
 
@@ -557,23 +557,20 @@ if ($id_perusahaan) {
                                     <?php endif; ?>
 
                                     <?php
-                                    // Kriteria 2: Data perusahaan tidak lengkap
-                                    // Cek apakah ada field penting yang kosong
-                                    $dataPerusahaanLengkap = true;
-                                    if (isset($company['data'][0])) {
-                                        $companyData = $company['data'][0];
-                                        // Cek field-field penting (sesuaikan dengan kebutuhan)
-                                        $importantFields = ['nama_perusahaan', 'deskripsi', 'lokasi', 'no_telp', 'email'];
-                                        foreach ($importantFields as $field) {
-                                            if (empty($companyData[$field]) || trim($companyData[$field]) === '') {
-                                                $dataPerusahaanLengkap = false;
-                                                break;
-                                            }
-                                        }
+                                    // Kriteria 2: Perusahaan belum memiliki lowongan
+                                    $totalLowonganSemua = 0;
+                                    if ($id_perusahaan) {
+                                        // Hitung total semua lowongan (tanpa filter status)
+                                        $lowonganSemua = supabaseQuery('lowongan', [
+                                            'select' => 'id_lowongan',
+                                            'id_perusahaan' => 'eq.' . $id_perusahaan
+                                        ]);
+
+                                        $totalLowonganSemua = $lowonganSemua['success'] ? count($lowonganSemua['data']) : 0;
                                     }
 
-                                    if (!$dataPerusahaanLengkap): ?>
-                                        <li>Data perusahaan anda tidak lengkap. Harap lengkapi profil perusahaan</li>
+                                    if ($totalLowonganSemua == 0): ?>
+                                        <li>perusahaan anda belum memiliki lowongan! segera buat lowongan</li>
                                     <?php endif; ?>
 
                                     <?php
@@ -588,7 +585,7 @@ if ($id_perusahaan) {
 
                                     <?php
                                     // Jika tidak ada kriteria yang terpenuhi, tampilkan pesan default
-                                    if ($pelamarDiproses == 0 && $dataPerusahaanLengkap && ($masalahCount < $peringatanBatas || $masalahCount >= $batasMaksimal)): ?>
+                                    if ($pelamarDiproses == 0 && $totalLowonganSemua > 0 && ($masalahCount < $peringatanBatas || $masalahCount >= $batasMaksimal)): ?>
                                         <li>Tidak ada peringatan saat ini. Pertahankan performa akun anda!</li>
                                     <?php endif; ?>
                                 </ul>

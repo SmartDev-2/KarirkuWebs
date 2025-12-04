@@ -25,14 +25,11 @@ $company = supabaseQuery('perusahaan', [
     'id_pengguna' => 'eq.' . $user_id
 ]);
 
-
-
 // Jika tidak ada data perusahaan, redirect ke edit_company
 if (count($company['data']) === 0) {
+    header('Location: edit_company.php');
     exit;
 }
-
-
 
 // Ambil data perusahaan untuk ditampilkan
 $companyData = $company['data'][0];
@@ -69,7 +66,6 @@ $lowonganCheck = supabaseQuery('lowongan', [
 ]);
 
 if ($lowonganCheck['success'] && count($lowonganCheck['data']) > 0) {
-
     // Hitung jumlah pelamar per status
     $counts = [];
     foreach (['diproses', 'diterima', 'ditolak'] as $s) {
@@ -86,22 +82,21 @@ if ($status === 'selesai') {
     // Hitung tanggal 7 hari yang lalu
     $sevenDaysAgo = date('Y-m-d', strtotime('-7 days'));
 
-    // Query untuk mendapatkan pelamar dengan status diterima/ditolak dalam 7 hari terakhir
-    $pelamarResult = getPelamarByStatus($id_perusahaan, null, 100);
+    // Query untuk mendapatkan pelamar dengan status diterima/ditolak
+    $pelamarResult = getPelamarSelesai($id_perusahaan, 100);
 
-    // Filter manual untuk diterima, ditolak, dan dalam 7 hari terakhir
+    // Filter manual untuk 7 hari terakhir
     if ($pelamarResult['success'] && isset($pelamarResult['data'])) {
         $allApplicants = array_filter($pelamarResult['data'], function ($applicant) use ($sevenDaysAgo) {
-            $isCompleted = in_array($applicant['status'] ?? '', ['diterima', 'ditolak']);
             $isWithin7Days = false;
-
+            
             // Cek jika tanggal lamaran dalam 7 hari terakhir
-            if (isset($applicant['tanggal_lamaran']) && $applicant['tanggal_lamaran']) {
-                $applyDate = date('Y-m-d', strtotime($applicant['tanggal_lamaran']));
+            if (isset($applicant['dibuat_pada']) && $applicant['dibuat_pada']) {
+                $applyDate = date('Y-m-d', strtotime($applicant['dibuat_pada']));
                 $isWithin7Days = ($applyDate >= $sevenDaysAgo);
             }
-
-            return $isCompleted && $isWithin7Days;
+            
+            return $isWithin7Days;
         });
 
         // Reset array keys
@@ -137,6 +132,9 @@ if ($status === 'selesai') {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
 
     <style>
+        body {
+            background-color: #f6f6f6 !important;
+        }
         .user-dropdown.dropdown-toggle::after {
             display: none !important;
         }
@@ -384,7 +382,7 @@ if ($status === 'selesai') {
             padding: 0;
             border-radius: 12px;
             width: 90%;
-            max-width: 600px;
+            max-width: 700px;
             max-height: 80vh;
             overflow-y: auto;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
@@ -415,6 +413,12 @@ if ($status === 'selesai') {
 
         .close-modal:hover {
             color: #374151;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
         }
 
         .modal-footer {
@@ -467,6 +471,42 @@ if ($status === 'selesai') {
             background: #374151;
         }
 
+        /* Detail Applicant Styles */
+        .applicant-detail-section {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .applicant-detail-section:last-child {
+            border-bottom: none;
+        }
+
+        .applicant-detail-section h4 {
+            margin-bottom: 16px;
+            color: #002E92;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .applicant-detail-section p {
+            margin-bottom: 8px;
+            color: #374151;
+        }
+
+        .applicant-detail-section strong {
+            color: #111827;
+            font-weight: 600;
+            min-width: 120px;
+            display: inline-block;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
         @media (max-width: 768px) {
             .applicants-table-container {
                 overflow-x: auto;
@@ -478,6 +518,11 @@ if ($status === 'selesai') {
 
             .action-buttons {
                 flex-direction: column;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
             }
         }
     </style>
@@ -567,7 +612,7 @@ if ($status === 'selesai') {
                 <h3 class="modal-title">Detail Pelamar</h3>
                 <button class="close-modal" onclick="closeApplicantModal()">&times;</button>
             </div>
-            <div id="applicantDetailContent">
+            <div class="modal-body" id="applicantDetailContent">
                 <!-- Detail content will be populated by JavaScript -->
             </div>
             <div class="modal-footer" id="modalFooter">
@@ -684,17 +729,6 @@ if ($status === 'selesai') {
                 // Initial untuk avatar
                 const initial = applicant.nama_pelamar ? applicant.nama_pelamar.charAt(0).toUpperCase() : 'P';
 
-                // Escape HTML untuk mencegah XSS
-                const escapeHtml = (unsafe) => {
-                    if (!unsafe) return '';
-                    return unsafe
-                        .replace(/&/g, "&amp;")
-                        .replace(/</g, "&lt;")
-                        .replace(/>/g, "&gt;")
-                        .replace(/"/g, "&quot;")
-                        .replace(/'/g, "&#039;");
-                };
-
                 html += `
                 <tr>
                     <td>
@@ -740,7 +774,7 @@ if ($status === 'selesai') {
             console.log("Table rendered with", filteredData.length, "rows");
         }
 
-        // Pindahkan fungsi escapeHtml ke global scope
+        // Fungsi untuk escape HTML
         function escapeHtml(unsafe) {
             if (!unsafe) return '';
             return unsafe
@@ -750,6 +784,159 @@ if ($status === 'selesai') {
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
         }
+
+        // Fungsi untuk membuka modal detail pelamar
+        function viewApplicantDetail(id_lamaran) {
+            console.log("Viewing applicant detail for ID:", id_lamaran);
+            
+            // Cari pelamar berdasarkan id_lamaran
+            const applicant = applicantData.find(app => {
+                return app.id_lamaran == id_lamaran;
+            });
+            
+            console.log("Found applicant:", applicant);
+            
+            if (!applicant) {
+                alert('Data pelamar tidak ditemukan!');
+                return;
+            }
+
+            // Format tanggal
+            let applyDate = 'Tanggal tidak tersedia';
+            try {
+                if (applicant.tanggal_lamaran) {
+                    const date = new Date(applicant.tanggal_lamaran);
+                    applyDate = date.toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+            } catch (e) {
+                console.error("Error formatting date:", e);
+            }
+
+            // Status label
+            const statusLabel = applicant.status === 'diproses' ? 'Diproses' :
+                applicant.status === 'diterima' ? 'Diterima' : 'Ditolak';
+
+            // Buat konten detail
+            const detailContent = `
+                <div class="applicant-detail-section">
+                    <h4>Informasi Pribadi</h4>
+                    <div class="detail-grid">
+                        <div>
+                            <p><strong>Nama Lengkap:</strong><br>${escapeHtml(applicant.nama_pelamar || 'Tidak tersedia')}</p>
+                            <p><strong>Email:</strong><br>${escapeHtml(applicant.email_pelamar || 'Tidak tersedia')}</p>
+                            <p><strong>No. HP:</strong><br>${escapeHtml(applicant.no_hp_pelamar || 'Tidak tersedia')}</p>
+                        </div>
+                        <div>
+                            <p><strong>Lowongan:</strong><br>${escapeHtml(applicant.judul_lowongan || 'Tidak tersedia')}</p>
+                            <p><strong>Tanggal Lamar:</strong><br>${applyDate}</p>
+                            <p><strong>Status:</strong><br>${statusLabel}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="applicant-detail-section">
+                    <h4>Dokumen & Catatan</h4>
+                    <p><strong>CV:</strong><br>
+                        ${applicant.cv_url ? 
+                            `<a href="${escapeHtml(applicant.cv_url)}" target="_blank" class="btn-cv" style="display: inline-flex; align-items: center; gap: 4px; margin-top: 8px;">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Lihat CV
+                            </a>` 
+                            : 'Tidak ada CV'
+                        }
+                    </p>
+                    <p><strong>Catatan Pelamar:</strong><br>${escapeHtml(applicant.catatan_pelamar || 'Tidak ada catatan')}</p>
+                </div>
+            `;
+
+            // Isi konten modal
+            document.getElementById('applicantDetailContent').innerHTML = detailContent;
+
+            // Tampilkan modal
+            const modal = document.getElementById('applicantDetailModal');
+            modal.style.display = 'block';
+
+            // Tambahkan tombol aksi berdasarkan status
+            let footerButtons = '';
+            if (applicant.status === 'diproses') {
+                footerButtons = `
+                    <button class="btn-success" onclick="updateApplicantStatus(${applicant.id_lamaran}, 'diterima')">Terima</button>
+                    <button class="btn-danger" onclick="updateApplicantStatus(${applicant.id_lamaran}, 'ditolak')">Tolak</button>
+                    <button class="btn-secondary" onclick="closeApplicantModal()">Tutup</button>
+                `;
+            } else {
+                footerButtons = `<button class="btn-secondary" onclick="closeApplicantModal()">Tutup</button>`;
+            }
+
+            document.getElementById('modalFooter').innerHTML = footerButtons;
+
+            // Simpan ID lamaran yang sedang dilihat
+            currentApplicantId = applicant.id_lamaran;
+        }
+
+        // Fungsi untuk menutup modal
+        function closeApplicantModal() {
+            document.getElementById('applicantDetailModal').style.display = 'none';
+        }
+
+        // Fungsi untuk mengupdate status pelamar
+        function updateApplicantStatus(id_lamaran, status) {
+            const action = status === 'diterima' ? 'menerima' : 'menolak';
+            if (!confirm(`Apakah Anda yakin ingin ${action} pelamar ini?`)) {
+                return;
+            }
+
+            // Kirim permintaan ke server
+            fetch('update_applicant_status.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id_lamaran: id_lamaran,
+                    status: status
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    // Tutup modal
+                    closeApplicantModal();
+                    // Reload halaman untuk update data
+                    window.location.reload();
+                } else {
+                    alert('Gagal mengupdate status: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat mengupdate status.');
+            });
+        }
+
+        // Tutup modal saat klik di luar
+        window.onclick = function(event) {
+            const modal = document.getElementById('applicantDetailModal');
+            if (event.target == modal) {
+                closeApplicantModal();
+            }
+        }
+
+        // Tutup modal dengan tombol ESC
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeApplicantModal();
+            }
+        });
 
         // Initial render
         document.addEventListener('DOMContentLoaded', function() {

@@ -231,7 +231,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
         </div>
         <div class="login-card1">
             <div class="login-body">
-                <h4 class="login-title"><img src="../assets/img/karirkulogo.png" alt="" style="width: 40px;"> Register</h4>
+                <h4 class="login-title"><img src="../assets/img/karirkulogo.png" alt="" style="width: 40px;"> Daftar</h4>
                 <!-- Ganti action form dan tambahkan input hidden -->
                 <form action="../function/auth-process.php" method="POST" id="registerForm">
                     <input type="hidden" name="action" value="register">

@@ -237,8 +237,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
 
                                     <div class="form-group">
-                                        <label class="form-label"><span class="required">*</span>Alamat</label>
-                                        <textarea name="lokasi" class="form-textarea" style="min-height: 80px;" placeholder="Tulis alamat lengkap lokasi kerja..." required></textarea>
+                                        <label class="form-label"><span class="required">*</span>Lokasi</label>
+                                        <textarea name="lokasi" class="form-textarea" style="min-height: 80px;" placeholder="Tulis lengkap lokasi kerja..." required></textarea>
                                     </div>
 
                                     <div class="form-group">
