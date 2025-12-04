@@ -530,7 +530,7 @@ if ($id_perusahaan) {
                         <p class="masalah-subtext">Lowongan yang ditolak dalam 2 minggu terakhir</p>
 
                         <div class="masalah-count-container">
-                            <div class="masalah-count-label">Lowongan bermasalah</div>
+                            <div class="masalah-count-label">Lowongan Ditolak</div>
                             <div class="masalah-count"><?php echo $masalahCount; ?></div>
                         </div>
 
