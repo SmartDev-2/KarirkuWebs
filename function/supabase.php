@@ -606,7 +606,7 @@ function updateStatusLamaran($id_lamaran, $status, $catatan_perusahaan = '')
     // Debug log hasil
     error_log("Update result: " . print_r($result, true));
 
-    return $result;
+    return supabaseUpdate('lamaran', $updateData, 'id_lamaran', $id_lamaran);
 }
 
 // Fungsi untuk mendapatkan detail lowongan dengan perusahaan
@@ -706,3 +706,25 @@ function getPelamarSelesai($id_perusahaan, $limit = 100) {
     return $result;
 }
 
+// Fungsi untuk menghitung statistik lamaran user
+function getStatistikLamaran($id_pencaker)
+{
+    $result = supabaseQuery('lamaran', [
+        'select' => 'status',
+        'id_pencaker' => 'eq.' . $id_pencaker
+    ]);
+
+    if (!$result['success']) {
+        return ['diproses' => 0, 'diterima' => 0, 'ditolak' => 0];
+    }
+
+    $statistik = ['diproses' => 0, 'diterima' => 0, 'ditolak' => 0];
+    
+    foreach ($result['data'] as $lamaran) {
+        if (isset($statistik[$lamaran['status']])) {
+            $statistik[$lamaran['status']]++;
+        }
+    }
+
+    return $statistik;
+}

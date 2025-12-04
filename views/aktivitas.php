@@ -41,8 +41,8 @@ if (isset($_GET['saved'])) {
 // Ambil lowongan yang disimpan (favorit)
 $savedJobs = [];
 if ($pencaker) {
-    $result = supabaseQuery('favorit_lowongan', [
-        'select' => '*, lowongan!inner(*, perusahaan!inner(nama_perusahaan, logo_url))',
+    $result = supabaseQuery('lamaran', [
+        'select' => '*, lowongan!inner(judul, lokasi, perusahaan!inner(nama_perusahaan, logo_url))',
         'id_pencaker' => 'eq.' . $pencaker['id_pencaker'],
         'order' => 'dibuat_pada.desc'
     ]);
@@ -390,10 +390,12 @@ if ($pencaker) {
                                         </div>
                                     </div>
                                     <div class="job-actions">
-                                        <button class="btn-view" onclick="window.location.href='job-detail.php?id=<?php echo $job['id_lowongan']; ?>'">
+                                        <button class="btn-view"
+                                            onclick="window.location.href='job-detail.php?id=<?php echo $job['id_lowongan'] ?? ''; ?>'">
                                             <i class="bi bi-eye"></i> Lihat
                                         </button>
-                                        <button class="btn-remove" onclick="removeFavorite(<?php echo $saved['id_favorit']; ?>, '<?php echo htmlspecialchars(addslashes($job['judul'])); ?>')">
+                                        <button class="btn-remove"
+                                            onclick="removeFavorite(<?php echo $saved['id_favorit'] ?? ''; ?>, '<?php echo isset($job['judul']) ? htmlspecialchars($job['judul'], ENT_QUOTES) : ''; ?>')">
                                             <i class="bi bi-trash"></i> Hapus
                                         </button>
                                     </div>

@@ -28,8 +28,12 @@ if (!empty($pencaker['tanggal_lahir'])) {
     $usia = $today->diff($tanggalLahir)->y;
 }
 
-// Ambil data lamaran user
+// INI BAGIAN YANG DIPERBAIKI: Ambil data lamaran user
 $lamaranData = [];
+$jumlah_diproses = 0;
+$jumlah_diterima = 0;
+$jumlah_ditolak = 0;
+
 if ($pencaker) {
     $result = supabaseQuery('lamaran', [
         'select' => '*, lowongan(judul, perusahaan(nama_perusahaan))',
@@ -38,29 +42,34 @@ if ($pencaker) {
         'limit' => 10
     ]);
 
-    if ($result['success']) {
+    if ($result['success'] && !empty($result['data'])) {
         $lamaranData = $result['data'];
+
+        // Hitung statistik lamaran
+        foreach ($lamaranData as $lamaran) {
+            switch ($lamaran['status']) {
+                case 'diproses':
+                    $jumlah_diproses++;
+                    break;
+                case 'diterima':
+                    $jumlah_diterima++;
+                    break;
+                case 'ditolak':
+                    $jumlah_ditolak++;
+                    break;
+            }
+        }
     }
 }
-
 // Hitung statistik lamaran
-$jumlah_diproses = 0;
-$jumlah_diterima = 0;
-$jumlah_ditolak = 0;
-
-foreach ($lamaranData as $lamaran) {
-    switch ($lamaran['status']) {
-        case 'diproses':
-            $jumlah_diproses++;
-            break;
-        case 'diterima':
-            $jumlah_diterima++;
-            break;
-        case 'ditolak':
-            $jumlah_ditolak++;
-            break;
-    }
+$statistik = ['diproses' => 0, 'diterima' => 0, 'ditolak' => 0];
+if ($pencaker) {
+    $statistik = getStatistikLamaran($pencaker['id_pencaker']);
 }
+
+$jumlah_diproses = $statistik['diproses'];
+$jumlah_diterima = $statistik['diterima'];
+$jumlah_ditolak = $statistik['ditolak'];
 ?>
 
 <!DOCTYPE html>
@@ -447,9 +456,9 @@ foreach ($lamaranData as $lamaran) {
                 </div>
 
                 <div class="status-badges">
-                    <div class="badge-custom badge-yellow">Diproses (<?= $jumlah_diproses ?>)</div>
-                    <div class="badge-custom badge-green">Diterima (<?= $jumlah_diterima ?>)</div>
-                    <div class="badge-custom badge-red">Ditolak (<?= $jumlah_ditolak ?>)</div>
+                    <div class="badge-custom badge-yellow">Diproses (<?php echo $jumlah_diproses; ?>)</div>
+                    <div class="badge-custom badge-green">Diterima (<?php echo $jumlah_diterima; ?>)</div>
+                    <div class="badge-custom badge-red">Ditolak (<?php echo $jumlah_ditolak; ?>)</div>
                 </div>
             </div>
         <?php endif; ?>
